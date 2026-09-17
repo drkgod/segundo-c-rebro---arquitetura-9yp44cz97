@@ -13,7 +13,7 @@ const fontes = [
     idempotencia:
       'Se a mesma call cair duas vezes, o banco percebe e ignora a segunda. Nada é processado em dobro.',
     correlacao:
-      'O cliente é reconhecido pelo email dele. Se ele ainda nem pagou, a call fica guardada esperando — e quando a conta dele for criada, tudo volta pra ele.',
+      'O cliente é reconhecido pelo email dele. Se ele ainda nem pagou, a call fica guardada esperando, e quando a conta dele for criada, tudo volta pra ele.',
     destino: 'Vira memória pesquisável (chunks), ata da reunião, decisões e problemas levantados',
     cor: 'cyan',
   },
@@ -26,7 +26,7 @@ const fontes = [
     wf: 'Fluxo 5 · Portal',
     idempotencia: 'Cada cliente tem uma conta só. Criou, entra no cérebro.',
     correlacao:
-      'É aqui que a mágica acontece: o sistema pega TUDO que estava guardado no email dele — inclusive a call de vendas de antes de pagar — e junta na pasta dele.',
+      'É aqui que a mágica acontece: o sistema pega TUDO que estava guardado no email dele, inclusive a call de vendas de antes de pagar, e junta na pasta dele.',
     destino: 'A ficha do cliente nasce, com o histórico inteiro desde a primeira conversa',
     cor: 'violet',
   },
@@ -38,9 +38,9 @@ const fontes = [
     gatilho: 'Algo relevante acontece no grupo do cliente',
     wf: 'Fluxo 2 · WhatsApp',
     idempotencia:
-      'Lê o que já está registrado no sistema de SLA — não baixa nem processa mensagem de novo.',
+      'Lê o que já está registrado no sistema de SLA, não baixa nem processa mensagem de novo.',
     correlacao:
-      'Cada grupo sabe de quem é. Cliente puto no grupo esfria o cliente na hora — e fica escrito o porquê.',
+      'Cada grupo sabe de quem é. Cliente puto no grupo esfria o cliente na hora, e fica escrito o porquê.',
     destino:
       'Vira memória pesquisável, registra o problema (e quantas vezes ele reclamou disso), mexe na temperatura',
     cor: 'green',
@@ -67,7 +67,7 @@ const fontes = [
     wf: 'Fluxo 4 · GitHub',
     idempotencia: 'Cada alteração entra uma vez só.',
     correlacao:
-      'Cada cliente tem seu projeto. O que é construído lá dentro vira a nota de soluções — o que ele tem hoje, construído com a gente.',
+      'Cada cliente tem seu projeto. O que é construído lá dentro vira a nota de soluções, o que ele tem hoje, construído com a gente.',
     destino: 'Vira a nota de soluções: o que faz, com o que foi feito, em que pé está',
     cor: 'slate',
   },
@@ -87,7 +87,7 @@ const tabelas = [
       'A caixa de entrada bruta. Tudo que chega (call, mensagem, documento, código) passa por aqui primeiro.',
     campos:
       'de qual fonte veio · identificador único · quando aconteceu · o conteúdo original guardado inteiro',
-    refs: 'Se a mesma coisa chegar duas vezes, é ignorada. E o original fica guardado — se a IA errar, dá pra refazer.',
+    refs: 'Se a mesma coisa chegar duas vezes, é ignorada. E o original fica guardado, se a IA errar, dá pra refazer.',
   },
   {
     nome: 'chunks',
@@ -114,25 +114,25 @@ const tabelas = [
       'As dores do cliente: o que ele reclamou, de onde veio (WhatsApp, call, projeto) e quantas vezes.',
     campos:
       'descrição · gravidade · status (aberto, resolvido) · quantas vezes reclamou · primeira e última vez',
-    refs: "É o que responde 'o que ele mais reclamou?' — com número, não com impressão.",
+    refs: "É o que responde 'o que ele mais reclamou?', com número, não com impressão.",
   },
   {
     nome: 'processos',
     papel: 'Cada processo mapeado: como era, quanto tempo levava, como ficou, quanto ganhou.',
     campos:
       'nome do processo · antes (descrição + tempo) · depois (descrição + tempo) · ganho · de qual documento veio',
-    refs: "É o que responde 'quanto melhorou?' — com o número de antes e depois.",
+    refs: "É o que responde 'quanto melhorou?', com o número de antes e depois.",
   },
   {
     nome: 'solucoes',
-    papel: 'O que foi construído: sistema, automação, RPA, integração — e com qual tecnologia.',
+    papel: 'O que foi construído: sistema, automação, RPA, integração, e com qual tecnologia.',
     campos:
       'nome · tipo (sistema criado, automação, RPA, integração, funcionalidade) · tecnologias · em que pé está',
-    refs: "É o que responde 'o que a gente já entregou pra ele?' — sem depender da memória do consultor.",
+    refs: "É o que responde 'o que a gente já entregou pra ele?', sem depender da memória do consultor.",
   },
   {
     nome: 'notas',
-    papel: 'As notas prontas — o texto que você lê no Obsidian, já com etiquetas e vetor de busca.',
+    papel: 'As notas prontas, o texto que você lê no Obsidian, já com etiquetas e vetor de busca.',
     campos: 'tipo da nota · texto completo · etiquetas · versão · vetor',
     refs: 'Sempre regeneradas do banco. Se um dado muda, a nota muda junto na próxima atualização.',
   },
@@ -140,7 +140,7 @@ const tabelas = [
     nome: 'temperatura_historico',
     papel: 'O histórico do humor do cliente: cada mudança com o motivo e a prova.',
     campos: 'novo valor · quanto subiu ou caiu · por quê · qual evento causou',
-    refs: "É o que responde 'por que esfriou?' — com o trecho da conversa que causou.",
+    refs: "É o que responde 'por que esfriou?', com o trecho da conversa que causou.",
   },
 ]
 
@@ -167,13 +167,13 @@ const correlacoes = [
     de: 'Cliente pagou (conta no portal)',
     para: 'Tudo volta pra ele',
     tipo: 'o momento da mágica',
-    como: 'O sistema busca tudo que estava guardado no email dele e junta na pasta dele — inclusive a call de vendas de antes de pagar.',
+    como: 'O sistema busca tudo que estava guardado no email dele e junta na pasta dele, inclusive a call de vendas de antes de pagar.',
   },
   {
     de: 'Ficha do cliente',
     para: 'Todas as outras tabelas',
     tipo: 'o centro de tudo',
-    como: 'Memória, atas, decisões, problemas, processos, soluções, notas e temperatura — tudo se une na ficha do cliente.',
+    como: 'Memória, atas, decisões, problemas, processos, soluções, notas e temperatura, tudo se une na ficha do cliente.',
   },
   {
     de: 'Caixa de entrada',
@@ -191,7 +191,7 @@ const correlacoes = [
     de: 'Grupo do WhatsApp',
     para: 'Ficha do cliente',
     tipo: 'de quem é o grupo',
-    como: 'Reclamação no grupo vira problema registrado — e esfria a temperatura, com o trecho citado.',
+    como: 'Reclamação no grupo vira problema registrado, e esfria a temperatura, com o trecho citado.',
   },
   {
     de: 'Pasta no Drive',
@@ -304,7 +304,7 @@ const fmComum = [
     campo: 'aliases',
     tipo: 'apelidos',
     origem: 'preenchido uma vez',
-    uso: "Como o cliente é chamado no dia a dia ('Cleiton', 'a Cleiton ME') — pra reconhecer a call pelo nome solto.",
+    uso: "Como o cliente é chamado no dia a dia ('Cleiton', 'a Cleiton ME'), pra reconhecer a call pelo nome solto.",
   },
   {
     campo: 'tipo',
@@ -316,7 +316,7 @@ const fmComum = [
     campo: 'produto',
     tipo: 'rótulo',
     origem: 'do cadastro',
-    uso: 'Native, Pass ou Elite — pra não misturar universos.',
+    uso: 'Native, Pass ou Elite, pra não misturar universos.',
   },
   {
     campo: 'nicho',
@@ -352,7 +352,7 @@ const fmComum = [
     campo: 'categoria da temperatura',
     tipo: 'saída do número',
     origem: 'automático',
-    uso: 'Quente, morno, frio ou risco. Ninguém escreve isso à mão — o número manda.',
+    uso: 'Quente, morno, frio ou risco. Ninguém escreve isso à mão, o número manda.',
   },
   {
     campo: 'tendência',
@@ -438,7 +438,7 @@ const fases = [
 const perguntas = [
   {
     p: 'Quais clientes de agro tão em risco?',
-    resolve: 'Etiqueta de nicho + categoria de temperatura — em qualquer nota',
+    resolve: 'Etiqueta de nicho + categoria de temperatura, em qualquer nota',
   },
   { p: 'Como tá o Cleiton?', resolve: 'Ficha geral dele: resumo, temperatura e próximos passos' },
   { p: 'Por que ele esfriou?', resolve: 'Histórico de temperatura: o motivo e a frase que causou' },
@@ -465,7 +465,7 @@ const perguntas = [
   },
   {
     p: "'Clientes com problema de API'",
-    resolve: 'Busca por significado — acha mesmo sem saber onde está escrito',
+    resolve: 'Busca por significado, acha mesmo sem saber onde está escrito',
   },
 ]
 
@@ -576,7 +576,7 @@ export default function App() {
                 A história de um cliente, de ponta a ponta
               </h2>
               <p className="mb-4 text-sm text-slate-400">
-                O Cleiton aparece na nossa vida numa call de vendas — antes mesmo de existir como
+                O Cleiton aparece na nossa vida numa call de vendas, antes mesmo de existir como
                 cliente. Essa conversa já fica guardada. Quando ele paga, tudo que estava guardado
                 no nome dele se junta numa pasta só. Daí pra frente, tudo que acontece com ele
                 alimenta a memória.
@@ -587,7 +587,7 @@ export default function App() {
                     {
                       n: '1',
                       t: 'A primeira conversa',
-                      d: 'Call de vendas gravada no tl;dv. Ele ainda nem pagou, mas a conversa já fica guardada — e já dá pra pesquisar dentro dela.',
+                      d: 'Call de vendas gravada no tl;dv. Ele ainda nem pagou, mas a conversa já fica guardada, e já dá pra pesquisar dentro dela.',
                     },
                     {
                       n: '2',
@@ -597,7 +597,7 @@ export default function App() {
                     {
                       n: '3',
                       t: 'A IA organiza',
-                      d: 'Lê a conversa, separa por assunto, escreve a ata, anota as decisões e os problemas, e atualiza o humor dele — sempre com a frase que justifica.',
+                      d: 'Lê a conversa, separa por assunto, escreve a ata, anota as decisões e os problemas, e atualiza o humor dele, sempre com a frase que justifica.',
                     },
                     {
                       n: '4',
@@ -621,7 +621,7 @@ export default function App() {
                       </span>
                       <div>
                         <span className="font-medium text-white">{s.t}</span>
-                        <span className="text-slate-400"> — {s.d}</span>
+                        <span className="text-slate-400">, {s.d}</span>
                       </div>
                     </div>
                   ))}
@@ -631,7 +631,7 @@ export default function App() {
 
             <section>
               <h2 className="mb-3 text-lg font-semibold text-white">
-                O que a liderança vai perguntar — e onde está a resposta
+                O que a liderança vai perguntar, e onde está a resposta
               </h2>
               <div className="overflow-hidden rounded-xl border border-slate-800">
                 <table className="w-full text-sm">
@@ -657,7 +657,7 @@ export default function App() {
               {[
                 {
                   t: 'Nada entra duas vezes',
-                  d: 'Se a mesma call, mensagem ou documento aparecer de novo, o banco percebe e ignora. E o original fica guardado — se a IA errar, refaz sem perder nada.',
+                  d: 'Se a mesma call, mensagem ou documento aparecer de novo, o banco percebe e ignora. E o original fica guardado, se a IA errar, refaz sem perder nada.',
                 },
                 {
                   t: 'Tudo tem rastro',
@@ -665,7 +665,7 @@ export default function App() {
                 },
                 {
                   t: 'Nada muda sem motivo',
-                  d: 'O humor do cliente nunca esfria ou esquenta do nada: cada mudança vem com a frase que causou. E as notas são sempre refeitas do banco — se um dado muda, a nota muda junto.',
+                  d: 'O humor do cliente nunca esfria ou esquenta do nada: cada mudança vem com a frase que causou. E as notas são sempre refeitas do banco, se um dado muda, a nota muda junto.',
                 },
               ].map((c) => (
                 <div key={c.t} className="rounded-xl border border-slate-800 bg-[#0d1219] p-4">
@@ -727,7 +727,7 @@ export default function App() {
             <h2 className="text-lg font-semibold text-white">Como tudo é guardado</h2>
             <p className="text-sm text-slate-400">
               Um banco novo, só disso. A ficha do cliente é o centro: tudo se liga nela. E tudo que
-              chega passa primeiro pela caixa de entrada, que guarda o original — dá sempre pra
+              chega passa primeiro pela caixa de entrada, que guarda o original, dá sempre pra
               refazer.
             </p>
             {tabelas.map((t) => (
@@ -779,7 +779,7 @@ export default function App() {
             <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4 text-sm text-slate-300">
               <strong className="text-cyan-300">O pulo do gato:</strong> a call de vendas fica
               guardada mesmo antes do cliente existir. Quando ele paga e a conta é criada, o sistema
-              busca tudo que estava no email dele e junta na pasta dele — a memória começa na
+              busca tudo que estava no email dele e junta na pasta dele, a memória começa na
               PRIMEIRA conversa, não na primeira consultoria.
             </div>
           </div>
@@ -789,11 +789,11 @@ export default function App() {
         {tab === 'notas' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">
-              As notas — uma memória que dá gosto de ler
+              As notas, uma memória que dá gosto de ler
             </h2>
             <p className="text-sm text-slate-400">
               Cada nota é pequena e de um assunto só. Todas carregam as mesmas etiquetas no topo
-              (nicho, temperatura, consultor) — dá pra filtrar em qualquer uma. E ninguém escreve
+              (nicho, temperatura, consultor), dá pra filtrar em qualquer uma. E ninguém escreve
               nota à mão: elas são sempre refeitas do banco, então nunca ficam velhas.
             </p>
             {tiposNota.map((n) => (
@@ -826,19 +826,19 @@ export default function App() {
               <pre className="overflow-x-auto rounded-lg bg-black/40 p-4 text-xs text-slate-300">{`Segundo Cérebro/
 ├── Clientes/
 │   └── Cleiton Fertilizantes/
-│       ├── 00-Geral — Cleiton Fertilizantes.md
-│       ├── 01-Decisões — Cleiton Fertilizantes.md
-│       ├── 02-Problemas — Cleiton Fertilizantes.md
-│       ├── 03-Processos — Cleiton Fertilizantes.md
-│       ├── 04-Soluções — Cleiton Fertilizantes.md
+│       ├── 00-Geral, Cleiton Fertilizantes.md
+│       ├── 01-Decisões, Cleiton Fertilizantes.md
+│       ├── 02-Problemas, Cleiton Fertilizantes.md
+│       ├── 03-Processos, Cleiton Fertilizantes.md
+│       ├── 04-Soluções, Cleiton Fertilizantes.md
 │       └── Atas/
-│           └── 2026-09-15 — 1ª Consultoria.md
+│           └── 2026-09-15, 1ª Consultoria.md
 └── Recortes/
     ├── Clientes de Agro.md
     ├── Clientes do Navaar.md
     └── Quem tá em Risco.md`}</pre>
               <p className="mt-2 text-sm text-slate-400">
-                Até lá, as notas já vivem prontas no banco — dá pra ler e buscar tudo por lá.
+                Até lá, as notas já vivem prontas no banco, dá pra ler e buscar tudo por lá.
               </p>
             </div>
           </div>
@@ -848,12 +848,12 @@ export default function App() {
         {tab === 'frontmatter' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">
-              As etiquetas do topo — o que permite achar depois
+              As etiquetas do topo, o que permite achar depois
             </h2>
             <p className="text-sm text-slate-400">
               Toda nota começa com um bloco de etiquetas. Cada uma existe por um motivo: tem uma
-              pergunta que só ela responde. Quase tudo é automático — ninguém fica preenchendo isso
-              à mão.
+              pergunta que só ela responde. Quase tudo é automático, ninguém fica preenchendo isso à
+              mão.
             </p>
             <div className="overflow-hidden rounded-xl border border-slate-800">
               <table className="w-full text-sm">
@@ -901,7 +901,7 @@ atualizada em: 17/09/2026`}</pre>
         {tab === 'temperatura' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">
-              A temperatura — o humor do cliente, em número
+              A temperatura, o humor do cliente, em número
             </h2>
             <p className="text-sm text-slate-400">
               Começa em 50 quando o cliente entra. Sobe e desce com o que acontece: cada reunião,
@@ -934,13 +934,13 @@ atualizada em: 17/09/2026`}</pre>
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-4 text-sm text-slate-300">
                 <strong className="text-rose-300">A regra que não quebra:</strong> a IA não pode
                 esfriar um cliente por causa de uma palavra solta. "Se porventura a gente desistir"
-                é hipótese, não ameaça. Ela olha a frase inteira, o contexto e a intenção — e sempre
+                é hipótese, não ameaça. Ela olha a frase inteira, o contexto e a intenção, e sempre
                 cita a frase que justificou a mudança.
               </div>
               <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-4 text-sm text-slate-300">
                 <strong className="text-cyan-300">As faixas:</strong> quente (75 pra cima) · morno
                 (50 a 74) · frio (25 a 49) · risco (abaixo de 25). A faixa sai do número, ninguém
-                escolhe à mão. E cada mudança fica registrada com o motivo — é o que responde "por
+                escolhe à mão. E cada mudança fica registrada com o motivo, é o que responde "por
                 que ele esfriou?".
               </div>
             </div>
@@ -989,7 +989,7 @@ atualizada em: 17/09/2026`}</pre>
       </main>
 
       <footer className="border-t border-slate-800 px-6 py-4 text-center text-xs text-slate-500">
-        Segundo Cérebro (Elite) · Adapta · v1.0 — 17/09/2026 · aguardando o ok do Rodrigo
+        Segundo Cérebro (Elite) · Adapta · v1.0, 17/09/2026 · aguardando o ok do Rodrigo
       </footer>
     </div>
   )
