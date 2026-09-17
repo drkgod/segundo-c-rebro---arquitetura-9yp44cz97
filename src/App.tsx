@@ -1,996 +1,2033 @@
 import { useState } from 'react'
+import {
+  Activity,
+  ArrowRight,
+  ArrowUpRight,
+  BookOpen,
+  Bot,
+  BrainCircuit,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  CircleAlert,
+  CircleUserRound,
+  Clock3,
+  Code2,
+  Database,
+  FileText,
+  FolderGit2,
+  FolderOpen,
+  Gauge,
+  Github,
+  HardDrive,
+  KeyRound,
+  Layers3,
+  Link2,
+  ListChecks,
+  MessageCircle,
+  Network,
+  PanelTop,
+  Quote,
+  Rocket,
+  ScanSearch,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Tag,
+  Users,
+  Video,
+  Waypoints,
+  Workflow,
+  X,
+  Zap,
+} from 'lucide-react'
 
-/* ============ DADOS (linguagem clara, humano) ============ */
-
-const fontes = [
+const sourceCards = [
   {
-    nome: 'tl;dv',
-    icone: '🎥',
-    entrega:
-      'Toda conversa gravada: a call de vendas, o kickoff, as consultorias, o encerramento. O que foi dito, quem tava lá, quando foi.',
-    gatilho: 'Toda vez que um consultor gravar uma call',
-    wf: 'Fluxo 1 · Calls',
-    idempotencia:
-      'Se a mesma call cair duas vezes, o banco percebe e ignora a segunda. Nada é processado em dobro.',
-    correlacao:
-      'O cliente é reconhecido pelo email dele. Se ele ainda nem pagou, a call fica guardada esperando, e quando a conta dele for criada, tudo volta pra ele.',
-    destino: 'Vira memória pesquisável (chunks), ata da reunião, decisões e problemas levantados',
-    cor: 'cyan',
+    id: 'tldv',
+    label: 'Conversas',
+    source: 'tl;dv',
+    icon: Video,
+    tone: 'cyan',
+    description: 'Vendas, kickoff, consultorias e encerramentos.',
+    input: 'Transcrição, participantes e data',
+    output: 'Ata, decisões, problemas e memória pesquisável',
+    link: 'O email do cliente reconhece de quem é a conversa.',
   },
   {
-    nome: 'Portal',
-    icone: '🚪',
-    entrega:
-      'O momento em que o cliente vira cliente de verdade: conta criada, em que etapa da jornada ele está, qual plano.',
-    gatilho: 'Cliente pagou e a conta foi criada no portal',
-    wf: 'Fluxo 5 · Portal',
-    idempotencia: 'Cada cliente tem uma conta só. Criou, entra no cérebro.',
-    correlacao:
-      'É aqui que a mágica acontece: o sistema pega TUDO que estava guardado no email dele, inclusive a call de vendas de antes de pagar, e junta na pasta dele.',
-    destino: 'A ficha do cliente nasce, com o histórico inteiro desde a primeira conversa',
-    cor: 'violet',
+    id: 'portal',
+    label: 'Portal',
+    source: 'Portal Next',
+    icon: PanelTop,
+    tone: 'violet',
+    description: 'O cadastro e a jornada oficial do cliente.',
+    input: 'Conta criada, etapa e plano',
+    output: 'Ficha do cliente e ligação com o histórico anterior',
+    link: 'Quando ele paga, tudo que estava esperando volta para ele.',
   },
   {
-    nome: 'WhatsApp',
-    icone: '💬',
-    entrega:
-      'O que o cliente fala no grupo: reclamações, pedidos urgentes, elogios, aquele desabafo. O que já é registrado hoje pelo controle de SLA.',
-    gatilho: 'Algo relevante acontece no grupo do cliente',
-    wf: 'Fluxo 2 · WhatsApp',
-    idempotencia:
-      'Lê o que já está registrado no sistema de SLA, não baixa nem processa mensagem de novo.',
-    correlacao:
-      'Cada grupo sabe de quem é. Cliente puto no grupo esfria o cliente na hora, e fica escrito o porquê.',
-    destino:
-      'Vira memória pesquisável, registra o problema (e quantas vezes ele reclamou disso), mexe na temperatura',
-    cor: 'green',
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    source: 'Grupos do cliente',
+    icon: MessageCircle,
+    tone: 'green',
+    description: 'O que ele pede, reclama, elogia ou sinaliza.',
+    input: 'Mensagens já registradas pelo controle de SLA',
+    output: 'Problemas, mudanças de temperatura e memória',
+    link: 'O grupo já está ligado à ficha daquele cliente.',
   },
   {
-    nome: 'Drive',
-    icone: '📁',
-    entrega:
-      'Os mapeamentos de processo: como o processo era antes, quanto tempo gastava, como ficou depois do projeto.',
-    gatilho: 'Documento novo na pasta do cliente',
-    wf: 'Fluxo 3 · Docs',
-    idempotencia: 'Cada documento entra uma vez só.',
-    correlacao:
-      'Cada cliente tem sua pasta. O que é mapeado lá vira a história do processo dele: antes → depois.',
-    destino: 'Vira a nota de processos: quanto tempo levava, quanto leva agora, qual foi o ganho',
-    cor: 'amber',
+    id: 'drive',
+    label: 'Processos',
+    source: 'Google Drive',
+    icon: FolderOpen,
+    tone: 'amber',
+    description: 'O processo antes, durante e depois do projeto.',
+    input: 'Mapeamentos e documentos do cliente',
+    output: 'Processos com tempo antes, tempo depois e ganho',
+    link: 'A pasta do Drive aponta para o cliente certo.',
   },
   {
-    nome: 'GitHub',
-    icone: '🐙',
-    entrega:
-      'O que foi construído de verdade: cada entrega, commit por commit. Se virou um sistema, uma automação, um RPA, qual tecnologia foi usada.',
-    gatilho: 'Alguém sobe código no projeto do cliente',
-    wf: 'Fluxo 4 · GitHub',
-    idempotencia: 'Cada alteração entra uma vez só.',
-    correlacao:
-      'Cada cliente tem seu projeto. O que é construído lá dentro vira a nota de soluções, o que ele tem hoje, construído com a gente.',
-    destino: 'Vira a nota de soluções: o que faz, com o que foi feito, em que pé está',
-    cor: 'slate',
+    id: 'github',
+    label: 'Construção',
+    source: 'GitHub Elite',
+    icon: Github,
+    tone: 'slate',
+    description: 'O que foi construído de verdade.',
+    input: 'Projeto principal, submódulo e alterações',
+    output: 'Soluções, funcionalidades, tecnologias e status',
+    link: 'O projeto principal é do Elite. O submódulo mostra o cliente.',
   },
 ]
 
-const tabelas = [
+const databaseBlocks = [
   {
-    nome: 'clientes',
-    papel: 'A ficha de cada cliente. É daqui que tudo pende.',
-    campos:
-      'nome · nicho · objetivo declarado · email · contas (portal, GitHub, Drive, WhatsApp) · consultor e CSM · temperatura',
-    refs: 'Toda outra tabela aponta pra cá. Achou o cliente, acha tudo.',
+    name: 'clientes',
+    title: 'Ficha de cada cliente',
+    icon: CircleUserRound,
+    tone: 'cyan',
+    copy: 'É o centro. Nome, email, nicho, consultor, contas ligadas e temperatura.',
   },
   {
-    nome: 'fontes_ingestao',
-    papel:
-      'A caixa de entrada bruta. Tudo que chega (call, mensagem, documento, código) passa por aqui primeiro.',
-    campos:
-      'de qual fonte veio · identificador único · quando aconteceu · o conteúdo original guardado inteiro',
-    refs: 'Se a mesma coisa chegar duas vezes, é ignorada. E o original fica guardado, se a IA errar, dá pra refazer.',
+    name: 'fontes_ingestao',
+    title: 'Caixa de entrada',
+    icon: DownloadIcon,
+    tone: 'slate',
+    copy: 'Guarda o original de cada conversa, mensagem, documento ou alteração.',
   },
   {
-    nome: 'chunks',
-    papel:
-      'A memória de verdade. Cada pedaço de conversa/documento, com assunto e vetor pra busca.',
-    campos: 'trecho · assunto · vetor (pra busca por significado) · de qual evento veio',
-    refs: "É o que permite perguntar 'o que foi falado sobre API?' e achar a parte exata, em qualquer call.",
+    name: 'chunks',
+    title: 'Memória pesquisável',
+    icon: ScanSearch,
+    tone: 'violet',
+    copy: 'Pedaços de informação organizados por assunto para a busca encontrar o trecho certo.',
   },
   {
-    nome: 'atas_reunioes',
-    papel: 'A ata de cada reunião: o resumo, o clima da conversa, como o cliente entrou e saiu.',
-    campos: 'data · tipo da call · resumo em poucas linhas · temperatura antes e depois',
-    refs: 'Cada decisão sabe em qual reunião foi tomada, porque aponta pra cá.',
+    name: 'atas_reunioes',
+    title: 'Atas',
+    icon: CalendarDays,
+    tone: 'cyan',
+    copy: 'Uma visão curta de cada reunião, com clima, resumo e próximos passos.',
   },
   {
-    nome: 'decisoes',
-    papel: 'Cada decisão que mexe no projeto, numa linha, na ordem em que aconteceu.',
-    campos: 'o que foi decidido · o que muda no projeto · por que decidiram · em qual reunião',
-    refs: 'É o histórico de decisões do cliente. Ninguém precisa lembrar de cabeça o que foi combinado.',
+    name: 'decisoes',
+    title: 'Decisões',
+    icon: CheckCircle2,
+    tone: 'green',
+    copy: 'O que foi combinado, o impacto e em qual conversa isso aconteceu.',
   },
   {
-    nome: 'problemas',
-    papel:
-      'As dores do cliente: o que ele reclamou, de onde veio (WhatsApp, call, projeto) e quantas vezes.',
-    campos:
-      'descrição · gravidade · status (aberto, resolvido) · quantas vezes reclamou · primeira e última vez',
-    refs: "É o que responde 'o que ele mais reclamou?', com número, não com impressão.",
+    name: 'problemas',
+    title: 'Problemas',
+    icon: CircleAlert,
+    tone: 'red',
+    copy: 'Dores, reclamações, gravidade, recorrência e se já foram resolvidas.',
   },
   {
-    nome: 'processos',
-    papel: 'Cada processo mapeado: como era, quanto tempo levava, como ficou, quanto ganhou.',
-    campos:
-      'nome do processo · antes (descrição + tempo) · depois (descrição + tempo) · ganho · de qual documento veio',
-    refs: "É o que responde 'quanto melhorou?', com o número de antes e depois.",
+    name: 'processos',
+    title: 'Processos',
+    icon: Workflow,
+    tone: 'amber',
+    copy: 'Antes e depois do processo, com tempo e ganho comprovado ou projetado.',
   },
   {
-    nome: 'solucoes',
-    papel: 'O que foi construído: sistema, automação, RPA, integração, e com qual tecnologia.',
-    campos:
-      'nome · tipo (sistema criado, automação, RPA, integração, funcionalidade) · tecnologias · em que pé está',
-    refs: "É o que responde 'o que a gente já entregou pra ele?', sem depender da memória do consultor.",
+    name: 'solucoes',
+    title: 'Soluções',
+    icon: Rocket,
+    tone: 'violet',
+    copy: 'O que foi construído, para que serve, com qual tecnologia e em que pé está.',
   },
   {
-    nome: 'notas',
-    papel: 'As notas prontas, o texto que você lê no Obsidian, já com etiquetas e vetor de busca.',
-    campos: 'tipo da nota · texto completo · etiquetas · versão · vetor',
-    refs: 'Sempre regeneradas do banco. Se um dado muda, a nota muda junto na próxima atualização.',
+    name: 'notas',
+    title: 'Notas prontas',
+    icon: BookOpen,
+    tone: 'green',
+    copy: 'O conteúdo que a equipe lê. Texto, etiquetas, versão e busca por significado.',
   },
   {
-    nome: 'temperatura_historico',
-    papel: 'O histórico do humor do cliente: cada mudança com o motivo e a prova.',
-    campos: 'novo valor · quanto subiu ou caiu · por quê · qual evento causou',
-    refs: "É o que responde 'por que esfriou?', com o trecho da conversa que causou.",
-  },
-]
-
-const correlacoes = [
-  {
-    de: 'Call no tl;dv',
-    para: 'Caixa de entrada',
-    tipo: 'chega',
-    como: 'Cada call nova entra uma vez só, guardada inteira.',
-  },
-  {
-    de: 'Consultor na call',
-    para: 'Ficha do cliente',
-    tipo: 'de quem é',
-    como: 'O email do consultor diz quem atendeu. O email do cliente diz de quem é a call.',
-  },
-  {
-    de: 'Cliente que ainda não pagou',
-    para: 'Fica guardado esperando',
-    tipo: 'o detalhe que muda tudo',
-    como: 'A call de vendas é guardada mesmo sem cliente ainda. Nada se perde.',
-  },
-  {
-    de: 'Cliente pagou (conta no portal)',
-    para: 'Tudo volta pra ele',
-    tipo: 'o momento da mágica',
-    como: 'O sistema busca tudo que estava guardado no email dele e junta na pasta dele, inclusive a call de vendas de antes de pagar.',
-  },
-  {
-    de: 'Ficha do cliente',
-    para: 'Todas as outras tabelas',
-    tipo: 'o centro de tudo',
-    como: 'Memória, atas, decisões, problemas, processos, soluções, notas e temperatura, tudo se une na ficha do cliente.',
-  },
-  {
-    de: 'Caixa de entrada',
-    para: 'Tudo que é derivado',
-    tipo: 'rastro',
-    como: 'Toda decisão, problema, processo e solução sabe de qual conversa/documento/código veio. Sempre dá pra voltar na origem.',
-  },
-  {
-    de: 'Ata da reunião',
-    para: 'Decisão',
-    tipo: 'contexto',
-    como: 'Cada decisão sabe em qual reunião foi tomada. A nota de decisões lista na ordem, com data.',
-  },
-  {
-    de: 'Grupo do WhatsApp',
-    para: 'Ficha do cliente',
-    tipo: 'de quem é o grupo',
-    como: 'Reclamação no grupo vira problema registrado, e esfria a temperatura, com o trecho citado.',
-  },
-  {
-    de: 'Pasta no Drive',
-    para: 'Ficha do cliente',
-    tipo: 'de quem é a pasta',
-    como: 'Documento novo na pasta vira processo: antes → depois, com tempos e ganho.',
-  },
-  {
-    de: 'Projeto no GitHub',
-    para: 'Ficha do cliente',
-    tipo: 'de quem é o projeto',
-    como: 'Código novo vira solução registrada: o que faz, com o que foi feito, em que pé está.',
-  },
-  {
-    de: 'Banco',
-    para: 'Etiquetas da nota',
-    tipo: 'herança',
-    como: 'As etiquetas do topo da nota vêm prontas do banco: nicho, temperatura, consultor. Ninguém preenche na mão.',
-  },
-  {
-    de: 'Notas e memória',
-    para: 'Busca por significado',
-    tipo: 'pergunta livre',
-    como: 'Tudo é vetorizado. Pergunta em português normal acha a resposta, mesmo sem saber o nome do campo.',
-  },
-  {
-    de: 'Histórico de temperatura',
-    para: 'Temperatura atual',
-    tipo: 'sempre com motivo',
-    como: 'Nada muda sem explicação: cada subida ou queda tem o motivo e a prova escritos.',
+    name: 'temperatura_historico',
+    title: 'Histórico do humor',
+    icon: Gauge,
+    tone: 'red',
+    copy: 'Cada subida ou queda com seu motivo e a frase que comprova.',
   },
 ]
 
-const tiposNota = [
+const noteCards = [
   {
-    nome: '00-Geral',
-    granularidade: 'uma por cliente',
-    responde: 'Como está o cliente?',
-    mutavel: 'Atualizada a cada novidade',
-    especificos:
-      'objetivo dele · com quem falamos · temperatura com o histórico · problemas em aberto · o que já foi construído · próximos passos',
-    corpo:
-      'Começa com um resumo de 2-3 linhas (quem só bate o olho já sabe o essencial). Depois: quem é o cliente, o que ele quer, como anda o humor, o que tá pegando, o que já foi entregue e o que vem agora.',
+    id: 'geral',
+    number: '00',
+    name: 'Geral',
+    question: 'Como está esse cliente?',
+    icon: CircleUserRound,
+    tone: 'cyan',
+    preview:
+      'Cleiton está construindo a primeira versão do sistema. Está participativo, cobra clareza e o próximo passo é integrar os dados reais.',
+    fields: ['nicho', 'fase do projeto', 'temperatura', 'próximos passos'],
+    section: 'Quem ele é, o que quer, como está o relacionamento e o que precisa acontecer agora.',
   },
   {
-    nome: '01-Decisões',
-    granularidade: 'uma por cliente',
-    responde: 'O que a gente combinou com ele?',
-    mutavel: 'Atualizada a cada decisão',
-    especificos: 'quantas decisões · quando foi a última',
-    corpo:
-      'Na ordem, da mais recente pra mais antiga. Cada decisão: o que foi, o que muda no projeto, por que decidiram, e em qual reunião saiu.',
+    id: 'decisoes',
+    number: '01',
+    name: 'Decisões',
+    question: 'O que foi combinado?',
+    icon: CheckCircle2,
+    tone: 'green',
+    preview:
+      '15/09. O piloto vai começar pela prospecção B2B. A parte financeira fica para uma etapa posterior.',
+    fields: ['data', 'decisão', 'impacto', 'origem'],
+    section: 'Uma sequência simples das decisões que mudaram o caminho do projeto.',
   },
   {
-    nome: '02-Problemas',
-    granularidade: 'uma por cliente',
-    responde: 'O que ele mais reclamou?',
-    mutavel: 'Atualizada a cada problema',
-    especificos: 'quantos abertos · quantos resolvidos · o mais recorrente',
-    corpo:
-      'Agrupado por assunto. Cada problema: o quão sério é, se tá aberto ou resolvido, quantas vezes ele reclamou disso, e a última frase que ele falou sobre.',
+    id: 'problemas',
+    number: '02',
+    name: 'Problemas',
+    question: 'O que mais incomoda?',
+    icon: CircleAlert,
+    tone: 'red',
+    preview:
+      'Demora no retorno. Quatro menções no WhatsApp. Continua aberto e está ligado ao cuidado com os próximos prazos.',
+    fields: ['gravidade', 'recorrência', 'status', 'última menção'],
+    section: 'As dores agrupadas por assunto, sem transformar cada mensagem em um problema novo.',
   },
   {
-    nome: '03-Processos',
-    granularidade: 'uma por cliente',
-    responde: 'Quanto melhorou depois da gente?',
-    mutavel: 'Atualizada a cada mapeamento',
-    especificos: 'quantos processos · ganho médio',
-    corpo:
-      'Por processo: como era e quanto tempo levava → como ficou e quanto leva agora → qual foi o ganho → de onde saiu esse número.',
+    id: 'processos',
+    number: '03',
+    name: 'Processos',
+    question: 'Quanto melhorou?',
+    icon: Workflow,
+    tone: 'amber',
+    preview:
+      'Montar uma lista de 50 empresas levava dois dias. Com o novo fluxo, a fila inicial fica pronta em cerca de 15 minutos.',
+    fields: ['antes', 'depois', 'ganho', 'fonte'],
+    section:
+      'A história do processo antes e depois, com o número separado do que ainda é expectativa.',
   },
   {
-    nome: '04-Soluções',
-    granularidade: 'uma por cliente',
-    responde: 'O que a gente já construiu pra ele?',
-    mutavel: 'Atualizada a cada entrega',
-    especificos: 'quantas soluções · de que tipo · tecnologia principal',
-    corpo:
-      'Por solução: o que faz, se é sistema/automação/RPA, com que tecnologia, e em que pé está.',
+    id: 'solucoes',
+    number: '04',
+    name: 'Soluções',
+    question: 'O que foi construído?',
+    icon: Rocket,
+    tone: 'violet',
+    preview:
+      'Radar Primitivo. Fila priorizada de empresas, ficha do lead e justificativa para cada prioridade.',
+    fields: ['o que faz', 'tipo', 'tecnologia', 'status'],
+    section: 'Tudo que foi criado ou conectado para resolver o problema do cliente.',
   },
   {
-    nome: 'Ata',
-    granularidade: 'uma por reunião',
-    responde: 'O que aconteceu naquela call?',
-    mutavel: 'Fica como está (histórico)',
-    especificos:
-      'data · tipo da call · temperatura antes e depois · decisões e problemas da call · link pra gravação',
-    corpo:
-      'Resumo em poucas linhas → o que foi decidido → problemas levantados → quem fica com o quê → frases importantes ditas na call → como o humor mudou.',
-  },
-  {
-    nome: 'MOC',
-    granularidade: 'uma por recorte',
-    responde: 'Visões do conjunto: por nicho, por consultor, quem tá em risco',
-    mutavel: 'Gerada automática',
-    especificos: 'qual o recorte (nicho, consultor, risco)',
-    corpo:
-      "Lista de clientes com link pra ficha de cada um, temperatura e fase. Ex.: 'todos os clientes de agro', 'todos do Navaar', 'quem tá em risco'.",
-  },
-]
-
-const fmComum = [
-  {
-    campo: 'cliente',
-    tipo: 'nome',
-    origem: 'ficha do cliente',
-    uso: 'Saber de quem é a nota. É o título dela.',
-  },
-  {
-    campo: 'aliases',
-    tipo: 'apelidos',
-    origem: 'preenchido uma vez',
-    uso: "Como o cliente é chamado no dia a dia ('Cleiton', 'a Cleiton ME'), pra reconhecer a call pelo nome solto.",
-  },
-  {
-    campo: 'tipo',
-    tipo: 'rótulo',
-    origem: 'automático',
-    uso: 'Filtrar: só decisões, só problemas, só atas...',
-  },
-  {
-    campo: 'produto',
-    tipo: 'rótulo',
-    origem: 'do cadastro',
-    uso: 'Native, Pass ou Elite, pra não misturar universos.',
-  },
-  {
-    campo: 'nicho',
-    tipo: 'lista fechada',
-    origem: 'a IA sugere, você corrige',
-    uso: "A pergunta clássica: 'quais clientes de agro...?'",
-  },
-  {
-    campo: 'segmento',
-    tipo: 'texto livre',
-    origem: 'a IA sugere, você corrige',
-    uso: 'O sub-assunto do nicho (ex.: fertilizantes especiais).',
-  },
-  {
-    campo: 'status',
-    tipo: 'rótulo',
-    origem: 'do cadastro',
-    uso: 'Ativo, pausado, saiu, terminou.',
-  },
-  {
-    campo: 'fase do projeto',
-    tipo: 'rótulo',
-    origem: 'da jornada',
-    uso: 'Ainda sem plano, em descoberta, em construção, integrando, finalizado.',
-  },
-  {
-    campo: 'temperatura',
-    tipo: 'nota de 0 a 100',
-    origem: 'recalculada a cada evento',
-    uso: 'O número do humor. Sempre atualizado.',
-  },
-  {
-    campo: 'categoria da temperatura',
-    tipo: 'saída do número',
-    origem: 'automático',
-    uso: 'Quente, morno, frio ou risco. Ninguém escreve isso à mão, o número manda.',
-  },
-  {
-    campo: 'tendência',
-    tipo: 'saída dos últimos eventos',
-    origem: 'automático',
-    uso: 'Subindo, estável ou caindo.',
-  },
-  {
-    campo: 'consultor e CSM',
-    tipo: 'nomes',
-    origem: 'da carteira',
-    uso: 'Saber de quem é aquele cliente.',
-  },
-  {
-    campo: 'tags',
-    tipo: 'assuntos (máx 7)',
-    origem: 'a IA classifica',
-    uso: 'Do que a nota fala: escopo, prazo, API, reclamação... Nunca nome de cliente.',
-  },
-  {
-    campo: 'versão e data de atualização',
-    tipo: 'controle',
-    origem: 'automático',
-    uso: 'Saber se a nota tá fresca.',
+    id: 'ata',
+    number: 'A',
+    name: 'Ata',
+    question: 'O que aconteceu na reunião?',
+    icon: Video,
+    tone: 'slate',
+    preview:
+      'A conversa foi produtiva. O escopo ficou mais estreito, três decisões foram tomadas e uma dependência foi aberta.',
+    fields: ['data', 'participantes', 'decisões', 'próximos passos'],
+    section: 'Uma memória daquela reunião, com contexto suficiente para quem não estava presente.',
   },
 ]
 
-const temperaturas = [
-  { evento: 'Elogiou, marco importante, entrega entrou em produção', delta: '+5 a +10' },
-  { evento: 'Call boa: decisões tomadas, próximos passos claros', delta: '+5' },
-  { evento: 'Reclamação nova', delta: '−5 a −10' },
+const timeline = [
   {
-    evento: 'Cliente puto no WhatsApp (comprovado no que ele escreveu, não por palavra isolada)',
-    delta: '−10 a −20',
+    date: '15 set',
+    label: 'Consultoria',
+    copy: 'Escopo ficou mais claro e três decisões foram tomadas.',
+    tone: 'cyan',
+    icon: Video,
   },
   {
-    evento: 'Sinal de que quer sair (avaliado no contexto, nunca por uma palavra solta)',
-    delta: '−20',
-  },
-  { evento: 'Sumiu: mais de 30 dias sem call e sem mensagem', delta: '−10' },
-  { evento: 'Problema sério parado há mais de 7 dias', delta: '−5 por semana' },
-]
-
-const fases = [
-  {
-    fase: 'F0',
-    nome: 'Criar o banco',
-    oque: 'Criar o Supabase novo e rodar a estrutura',
-    aceite: 'Tabelas prontas, busca funcionando, ninguém de fora entra',
+    date: '09 set',
+    label: 'Kickoff',
+    copy: 'O objetivo e as pessoas que participam do projeto foram confirmados.',
+    tone: 'violet',
+    icon: Users,
   },
   {
-    fase: 'F1',
-    nome: 'Piloto com um cliente',
-    oque: 'Fluxo de calls completo: baixa o tl;dv, a IA organiza tudo, gera as notas',
-    aceite: 'Um cliente com o histórico inteiro dentro e as notas dele prontas pra ler',
+    date: '02 set',
+    label: 'WhatsApp',
+    copy: 'Cliente pediu retorno sobre uma dependência. Problema ficou registrado.',
+    tone: 'red',
+    icon: MessageCircle,
   },
   {
-    fase: 'F2',
-    nome: 'Todos os clientes Native',
-    oque: 'Conectar o portal e puxar o histórico de todos',
-    aceite: 'Todo cliente Native com a ficha dele; nada de call perdida',
-  },
-  {
-    fase: 'F3',
-    nome: 'WhatsApp',
-    oque: 'O que o cliente fala no grupo entra no cérebro na hora',
-    aceite: 'Reclamação no grupo aparece como problema e mexe na temperatura no mesmo dia',
-  },
-  {
-    fase: 'F4',
-    nome: 'Drive e GitHub',
-    oque: 'Mapeamentos viram nota de processos; código vira nota de soluções',
-    aceite: 'Processos e soluções preenchidos no piloto',
-  },
-  {
-    fase: 'F5',
-    nome: 'Busca',
-    oque: 'Perguntar em português e achar a resposta',
-    aceite: 'As perguntas da liderança respondidas em menos de 30 segundos',
+    date: '22 ago',
+    label: 'Processo',
+    copy: 'O fluxo atual de prospecção foi mapeado no Drive.',
+    tone: 'amber',
+    icon: FolderOpen,
   },
 ]
 
-const perguntas = [
+const relationships = [
   {
-    p: 'Quais clientes de agro tão em risco?',
-    resolve: 'Etiqueta de nicho + categoria de temperatura, em qualquer nota',
-  },
-  { p: 'Como tá o Cleiton?', resolve: 'Ficha geral dele: resumo, temperatura e próximos passos' },
-  { p: 'Por que ele esfriou?', resolve: 'Histórico de temperatura: o motivo e a frase que causou' },
-  {
-    p: 'O que a gente combinou com ele?',
-    resolve: 'Nota de decisões, na ordem, com a reunião de origem',
+    from: 'Conversa de vendas',
+    to: 'Ficha do cliente',
+    label: 'começa a história',
+    copy: 'A conversa fica guardada mesmo antes do pagamento.',
   },
   {
-    p: 'Do que ele mais reclamou?',
-    resolve: 'Nota de problemas: o assunto mais recorrente, com número de vezes',
+    from: 'Conta criada no portal',
+    to: 'Histórico inteiro',
+    label: 'junta o passado',
+    copy: 'O email liga as conversas anteriores ao cadastro novo.',
   },
   {
-    p: 'Quanto o processo melhorou?',
-    resolve: 'Nota de processos: tempo de antes vs tempo de agora',
+    from: 'Mensagem no WhatsApp',
+    to: 'Problema e temperatura',
+    label: 'mostra o momento',
+    copy: 'O contexto da fala importa. Uma palavra isolada nunca decide.',
   },
   {
-    p: 'O que já foi construído?',
-    resolve: 'Nota de soluções: o que é, com que tecnologia, em que pé está',
-  },
-  { p: 'O que aconteceu na call de 15/09?', resolve: 'A ata do dia, com link pra gravação' },
-  {
-    p: 'Quais clientes do Navaar tão parados?',
-    resolve: 'Recorte por consultor + fase do projeto',
+    from: 'Documento do Drive',
+    to: 'Processo',
+    label: 'mostra a mudança',
+    copy: 'O antes e o depois ficam ligados à fonte.',
   },
   {
-    p: "'Clientes com problema de API'",
-    resolve: 'Busca por significado, acha mesmo sem saber onde está escrito',
+    from: 'Submódulo no GitHub',
+    to: 'Solução',
+    label: 'mostra a construção',
+    copy: 'A entrega registrada vira uma memória do projeto.',
   },
 ]
 
-/* ============ ESTILOS ============ */
-const corBorda: Record<string, string> = {
-  cyan: 'border-cyan-400/40 bg-cyan-400/5',
-  violet: 'border-violet-400/40 bg-violet-400/5',
-  green: 'border-emerald-400/40 bg-emerald-400/5',
-  amber: 'border-amber-400/40 bg-amber-400/5',
-  slate: 'border-slate-400/40 bg-slate-400/5',
+const frontmatterFields = [
+  {
+    field: 'cliente',
+    value: 'Cleiton Fertilizantes',
+    source: 'Ficha do cliente',
+    reason: 'Para toda nota saber de quem está falando.',
+  },
+  {
+    field: 'apelidos',
+    value: 'Cleiton, Cleiton ME',
+    source: 'Ajuste humano',
+    reason: 'Para reconhecer o mesmo cliente quando ele aparece com outro nome.',
+  },
+  {
+    field: 'nicho',
+    value: 'agro',
+    source: 'Sugestão da IA, confirmação humana',
+    reason: 'Para perguntar quais clientes de agro estão em risco.',
+  },
+  {
+    field: 'fase_do_projeto',
+    value: 'em construção',
+    source: 'Jornada do portal',
+    reason: 'Para entender onde o cliente está sem ler tudo.',
+  },
+  {
+    field: 'temperatura',
+    value: '72 · quente · subindo',
+    source: 'Reuniões e WhatsApp',
+    reason: 'Para saber o estado atual e o caminho que ele está fazendo.',
+  },
+  {
+    field: 'consultor',
+    value: 'Felipe Navaar',
+    source: 'Carteira do cliente',
+    reason: 'Para criar visões por consultor e dar contexto antes da call.',
+  },
+  {
+    field: 'tags',
+    value: 'escopo, API, prazo',
+    source: 'Assuntos encontrados',
+    reason: 'Para agrupar notas que falam de coisas parecidas.',
+  },
+  {
+    field: 'atualizada_em',
+    value: '17/09/2026',
+    source: 'Automático',
+    reason: 'Para saber se a leitura está atual.',
+  },
+]
+
+const temperatureEvents = [
+  {
+    label: 'Call produtiva',
+    value: '+5',
+    detail: 'Decisões tomadas e próximos passos claros.',
+    tone: 'up',
+  },
+  {
+    label: 'Entrega importante',
+    value: '+5 a +10',
+    detail: 'Algo que o cliente esperava entrou em produção.',
+    tone: 'up',
+  },
+  {
+    label: 'Reclamação nova',
+    value: '-5 a -10',
+    detail: 'Uma dor nova aparece e ainda precisa de resposta.',
+    tone: 'down',
+  },
+  {
+    label: 'Cliente muito irritado',
+    value: '-10 a -20',
+    detail: 'O contexto da mensagem mostra irritação real.',
+    tone: 'down',
+  },
+]
+
+const phases = [
+  {
+    code: 'F0',
+    title: 'Criar o banco',
+    copy: 'A casa onde tudo vai viver.',
+    done: true,
+    icon: Database,
+  },
+  {
+    code: 'F1',
+    title: 'Testar com um cliente',
+    copy: 'Uma história inteira, do começo ao fim.',
+    done: false,
+    icon: CircleUserRound,
+  },
+  {
+    code: 'F2',
+    title: 'Trazer todos os Native',
+    copy: 'Nenhum histórico importante fica de fora.',
+    done: false,
+    icon: Users,
+  },
+  {
+    code: 'F3',
+    title: 'Ligar o WhatsApp',
+    copy: 'O momento do cliente chega vivo.',
+    done: false,
+    icon: MessageCircle,
+  },
+  {
+    code: 'F4',
+    title: 'Ler Drive e GitHub',
+    copy: 'Processos e construções entram na história.',
+    done: false,
+    icon: Layers3,
+  },
+  {
+    code: 'F5',
+    title: 'Abrir a busca',
+    copy: 'Perguntas em português, respostas com contexto.',
+    done: false,
+    icon: Search,
+  },
+]
+
+const toneMap: Record<
+  string,
+  { border: string; bg: string; text: string; soft: string; dot: string }
+> = {
+  cyan: {
+    border: 'border-cyan-400/30',
+    bg: 'bg-cyan-400/10',
+    text: 'text-cyan-300',
+    soft: 'bg-cyan-400/5',
+    dot: 'bg-cyan-400',
+  },
+  violet: {
+    border: 'border-violet-400/30',
+    bg: 'bg-violet-400/10',
+    text: 'text-violet-300',
+    soft: 'bg-violet-400/5',
+    dot: 'bg-violet-400',
+  },
+  green: {
+    border: 'border-emerald-400/30',
+    bg: 'bg-emerald-400/10',
+    text: 'text-emerald-300',
+    soft: 'bg-emerald-400/5',
+    dot: 'bg-emerald-400',
+  },
+  amber: {
+    border: 'border-amber-400/30',
+    bg: 'bg-amber-400/10',
+    text: 'text-amber-300',
+    soft: 'bg-amber-400/5',
+    dot: 'bg-amber-400',
+  },
+  red: {
+    border: 'border-rose-400/30',
+    bg: 'bg-rose-400/10',
+    text: 'text-rose-300',
+    soft: 'bg-rose-400/5',
+    dot: 'bg-rose-400',
+  },
+  slate: {
+    border: 'border-slate-400/20',
+    bg: 'bg-slate-400/10',
+    text: 'text-slate-200',
+    soft: 'bg-slate-400/5',
+    dot: 'bg-slate-300',
+  },
 }
 
-/* ============ APP ============ */
+const navItems = [
+  { id: 'visao', label: 'Visão geral', icon: BrainCircuit, helper: 'A história inteira' },
+  { id: 'fontes', label: 'De onde vem', icon: Network, helper: 'As cinco fontes' },
+  { id: 'banco', label: 'Como guarda', icon: Database, helper: 'As partes da memória' },
+  { id: 'correlacoes', label: 'Como se liga', icon: Link2, helper: 'O caminho dos dados' },
+  { id: 'notas', label: 'As notas', icon: BookOpen, helper: 'Exemplos de leitura' },
+  { id: 'frontmatter', label: 'Etiquetas', icon: Tag, helper: 'Como encontrar depois' },
+  { id: 'temperatura', label: 'Temperatura', icon: Gauge, helper: 'O momento do cliente' },
+  { id: 'execucao', label: 'Por onde começa', icon: Rocket, helper: 'A ordem do trabalho' },
+]
+
+function DownloadIcon(props: { size?: number; strokeWidth?: number }) {
+  return <ArrowUpRight {...props} />
+}
+
+function ToneIcon({ icon: Icon, tone, size = 18 }: { icon: any; tone: string; size?: number }) {
+  const colors = toneMap[tone] || toneMap.slate
+  return (
+    <span
+      className={`flex h-9 w-9 items-center justify-center rounded-xl border ${colors.border} ${colors.bg} ${colors.text}`}
+    >
+      <Icon size={size} strokeWidth={1.8} />
+    </span>
+  )
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+  copy,
+  action,
+}: {
+  eyebrow: string
+  title: string
+  copy: string
+  action?: React.ReactNode
+}) {
+  return (
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-cyan-300/70">
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" />
+          {eyebrow}
+        </div>
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          {title}
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{copy}</p>
+      </div>
+      {action}
+    </div>
+  )
+}
+
+function MiniBadge({ children, tone = 'slate' }: { children: React.ReactNode; tone?: string }) {
+  const colors = toneMap[tone] || toneMap.slate
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-wide ${colors.border} ${colors.bg} ${colors.text}`}
+    >
+      {children}
+    </span>
+  )
+}
+
+function SourcePill({ item }: { item: (typeof sourceCards)[number] }) {
+  const Icon = item.icon
+  const colors = toneMap[item.tone]
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-xs shadow-xl backdrop-blur-xl ${colors.border} ${colors.bg} ${colors.text}`}
+    >
+      <Icon size={14} />
+      <span className="font-medium text-slate-200">{item.label}</span>
+    </div>
+  )
+}
+
 export default function App() {
   const [tab, setTab] = useState('visao')
-  const tabs = [
-    { id: 'visao', label: 'Visão Geral' },
-    { id: 'fontes', label: 'De onde vem' },
-    { id: 'banco', label: 'Como guarda' },
-    { id: 'correlacoes', label: 'Como se liga' },
-    { id: 'notas', label: 'As notas' },
-    { id: 'frontmatter', label: 'Etiquetas' },
-    { id: 'temperatura', label: 'Temperatura' },
-    { id: 'execucao', label: 'Por onde começa' },
-  ]
+  const [activeNote, setActiveNote] = useState('geral')
+  const [activeTable, setActiveTable] = useState('clientes')
+  const [mobileNav, setMobileNav] = useState(false)
+
+  const selectedNote = noteCards.find((note) => note.id === activeNote) || noteCards[0]
+  const SelectedNoteIcon = selectedNote.icon
+  const selectedTable =
+    databaseBlocks.find((table) => table.name === activeTable) || databaseBlocks[0]
+  const SelectedTableIcon = selectedTable.icon
+
+  const go = (next: string) => {
+    setTab(next)
+    setMobileNav(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   return (
-    <div className="min-h-screen bg-[#0b0f14] text-slate-200">
-      {/* HEADER */}
-      <header className="border-b border-slate-800 bg-[#0d1219] px-6 py-5">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">
-                Segundo Cérebro <span className="text-cyan-400">(Elite)</span>
-              </h1>
-              <p className="text-sm text-slate-400">
-                A memória completa de cada cliente · v1.0 · 17/09/2026
+    <div className="min-h-screen bg-[#07090d] text-slate-200 selection:bg-cyan-400/20 selection:text-cyan-100">
+      <style>{`
+        :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+        .font-display { font-family: 'Space Grotesk', Inter, ui-sans-serif, system-ui, sans-serif; }
+        .grid-surface { background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 52px 52px; }
+        .hero-glow { background: radial-gradient(circle at 72% 30%, rgba(41,219,255,.16), transparent 25%), radial-gradient(circle at 90% 80%, rgba(139,92,246,.15), transparent 30%); }
+        .text-glow { text-shadow: 0 0 24px rgba(41,219,255,.26); }
+        .soft-glow { box-shadow: 0 0 80px rgba(41,219,255,.08); }
+        .lift { animation: rise .65s cubic-bezier(.2,.8,.2,1) both; }
+        .float-slow { animation: float 6s ease-in-out infinite; }
+        .pulse-dot { animation: pulseDot 2.3s ease-in-out infinite; }
+        .shimmer-line { background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(41,219,255,.5), rgba(255,255,255,.04)); background-size: 200% 100%; animation: shimmer 3.2s linear infinite; }
+        @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+        @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(41,219,255,.35); } 50% { box-shadow: 0 0 0 8px rgba(41,219,255,0); } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+      `}</style>
+
+      <div className="flex min-h-screen">
+        <aside className="hidden w-[258px] shrink-0 border-r border-white/[0.07] bg-[#090c11] lg:flex lg:flex-col">
+          <div className="border-b border-white/[0.07] px-5 py-6">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-400/35 bg-cyan-400/10 text-cyan-300 shadow-[0_0_28px_rgba(41,219,255,.12)]">
+                <BrainCircuit size={21} />
+                <span className="pulse-dot absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-cyan-300" />
+              </div>
+              <div>
+                <p className="font-display text-sm font-bold text-white">Segundo Cérebro</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                  Arquitetura Elite
+                </p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                  Visão do projeto
+                </span>
+                <MiniBadge tone="green">Em desenho</MiniBadge>
+              </div>
+              <p className="text-xs leading-5 text-slate-400">
+                Uma memória viva para cada cliente, com contexto desde a primeira conversa.
               </p>
             </div>
-            <div className="flex gap-2 text-xs">
-              <span className="rounded-full border border-cyan-400/40 bg-cyan-400/10 px-3 py-1 text-cyan-300">
-                Um banco novo, só disso
-              </span>
-              <span className="rounded-full border border-violet-400/40 bg-violet-400/10 px-3 py-1 text-violet-300">
-                Notas no Obsidian
-              </span>
-              <span className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-emerald-300">
-                5 fluxos automáticos
-              </span>
-            </div>
           </div>
-          {/* PIPELINE RESUMO */}
-          <div className="mt-5 flex flex-wrap items-center gap-2 text-xs">
-            {['Conversas (tl;dv)', 'Portal', 'WhatsApp', 'Drive', 'GitHub'].map((f) => (
-              <span
-                key={f}
-                className="rounded-md border border-slate-700 bg-slate-800/60 px-2.5 py-1.5 text-slate-300"
+          <nav className="flex-1 space-y-1 px-3 py-5">
+            <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-600">
+              Mapa do sistema
+            </p>
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const active = tab === item.id
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => go(item.id)}
+                  className={`group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${active ? 'border border-cyan-400/20 bg-cyan-400/10 text-cyan-200' : 'border border-transparent text-slate-500 hover:bg-white/[0.04] hover:text-slate-200'}`}
+                >
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-xl ${active ? 'bg-cyan-400/15 text-cyan-300' : 'bg-white/[0.04] text-slate-500 group-hover:text-slate-300'}`}
+                  >
+                    <Icon size={16} strokeWidth={1.8} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-xs font-semibold">{item.label}</span>
+                    <span
+                      className={`block truncate text-[10px] ${active ? 'text-cyan-300/60' : 'text-slate-600'}`}
+                    >
+                      {item.helper}
+                    </span>
+                  </span>
+                  {active && <ChevronRight size={14} className="text-cyan-300" />}
+                </button>
+              )
+            })}
+          </nav>
+          <div className="border-t border-white/[0.07] p-4">
+            <div className="flex items-center gap-2 text-[10px] text-slate-500">
+              <ShieldCheck size={14} className="text-emerald-400" />
+              Escopo visual antes da execução
+            </div>
+            <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.08]">
+              <div className="h-full w-[28%] rounded-full bg-gradient-to-r from-cyan-400 to-violet-400" />
+            </div>
+            <p className="mt-2 text-[10px] text-slate-600">28% da definição consolidada</p>
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <header className="sticky top-0 z-30 border-b border-white/[0.07] bg-[#07090d]/90 backdrop-blur-xl">
+            <div className="mx-auto flex max-w-[1500px] items-center justify-between px-4 py-3 sm:px-6 lg:px-10">
+              <button
+                type="button"
+                className="flex items-center gap-2 lg:hidden"
+                onClick={() => setMobileNav(!mobileNav)}
               >
-                {f}
-              </span>
-            ))}
-            <span className="text-cyan-400">→</span>
-            <span className="rounded-md border border-cyan-500/50 bg-cyan-500/10 px-2.5 py-1.5 text-cyan-300">
-              A IA organiza em pedaços com assunto
-            </span>
-            <span className="text-cyan-400">→</span>
-            <span className="rounded-md border border-violet-500/50 bg-violet-500/10 px-2.5 py-1.5 text-violet-300">
-              Guarda tudo no banco, com busca por significado
-            </span>
-            <span className="text-cyan-400">→</span>
-            <span className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-2.5 py-1.5 text-emerald-300">
-              Vira nota por cliente
-            </span>
-            <span className="text-cyan-400">→</span>
-            <span className="rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-amber-300">
-              O time consulta antes da call · a liderança busca o que quiser
-            </span>
-          </div>
-        </div>
-      </header>
+                <BrainCircuit size={19} className="text-cyan-300" />
+                <span className="font-display text-sm font-bold text-white">Segundo Cérebro</span>
+              </button>
+              <div className="hidden items-center gap-3 text-xs text-slate-500 lg:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-300" />
+                Mapa visual da arquitetura <span className="text-slate-700">/</span>{' '}
+                <span className="text-slate-400">exemplo ilustrativo</span>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <MiniBadge tone="cyan">
+                  <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-cyan-300" />
+                  Supabase novo
+                </MiniBadge>
+                <span className="hidden text-[10px] text-slate-600 sm:inline">
+                  v1.0 · 17/09/2026
+                </span>
+              </div>
+            </div>
+            {mobileNav && (
+              <div className="border-t border-white/[0.07] bg-[#090c11] p-3 lg:hidden">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {navItems.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <button
+                        type="button"
+                        key={item.id}
+                        onClick={() => go(item.id)}
+                        className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-xs ${tab === item.id ? 'border-cyan-400/25 bg-cyan-400/10 text-cyan-200' : 'border-white/[0.07] text-slate-400'}`}
+                      >
+                        <Icon size={14} />
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </header>
 
-      {/* TABS */}
-      <nav className="sticky top-0 z-10 border-b border-slate-800 bg-[#0b0f14]/95 px-6 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto py-2">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`whitespace-nowrap rounded-md px-3.5 py-1.5 text-sm transition ${
-                tab === t.id
-                  ? 'bg-cyan-500/15 text-cyan-300 ring-1 ring-cyan-500/40'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </nav>
-
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        {/* ============ VISÃO GERAL ============ */}
-        {tab === 'visao' && (
-          <div className="space-y-8">
-            <section>
-              <h2 className="mb-1 text-lg font-semibold text-white">
-                A história de um cliente, de ponta a ponta
-              </h2>
-              <p className="mb-4 text-sm text-slate-400">
-                O Cleiton aparece na nossa vida numa call de vendas, antes mesmo de existir como
-                cliente. Essa conversa já fica guardada. Quando ele paga, tudo que estava guardado
-                no nome dele se junta numa pasta só. Daí pra frente, tudo que acontece com ele
-                alimenta a memória.
-              </p>
-              <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-5">
-                <div className="space-y-3 text-sm">
-                  {[
-                    {
-                      n: '1',
-                      t: 'A primeira conversa',
-                      d: 'Call de vendas gravada no tl;dv. Ele ainda nem pagou, mas a conversa já fica guardada, e já dá pra pesquisar dentro dela.',
-                    },
-                    {
-                      n: '2',
-                      t: 'Ele pagou',
-                      d: 'Conta criada no portal. Na mesma hora, o sistema busca tudo que estava guardado no email dele e junta: a call de vendas volta pra ele.',
-                    },
-                    {
-                      n: '3',
-                      t: 'A IA organiza',
-                      d: 'Lê a conversa, separa por assunto, escreve a ata, anota as decisões e os problemas, e atualiza o humor dele, sempre com a frase que justifica.',
-                    },
-                    {
-                      n: '4',
-                      t: 'As notas nascem',
-                      d: 'A ficha geral, as decisões, os problemas, a ata da reunião. Tudo com as etiquetas de busca no topo.',
-                    },
-                    {
-                      n: '5',
-                      t: 'E a vida continua alimentando',
-                      d: 'Reclamação no WhatsApp esfria o humor dele na hora. Mapeamento no Drive vira nota de processos. Código no GitHub vira nota de soluções. Call nova, ata nova.',
-                    },
-                    {
-                      n: '6',
-                      t: 'Todo mundo consulta',
-                      d: "O time abre a ficha antes da call. A liderança pergunta o que quiser ('quem tá em risco?') e a resposta sai em segundos. Os agentes de IA usam como contexto.",
-                    },
-                  ].map((s) => (
-                    <div key={s.n} className="flex gap-3">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-500/15 text-xs font-bold text-cyan-300 ring-1 ring-cyan-500/40">
-                        {s.n}
-                      </span>
-                      <div>
-                        <span className="font-medium text-white">{s.t}</span>
-                        <span className="text-slate-400">, {s.d}</span>
+          <main className="grid-surface min-h-[calc(100vh-57px)]">
+            <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+              {tab === 'visao' && (
+                <>
+                  <section className="hero-glow relative overflow-hidden rounded-[30px] border border-white/[0.1] bg-[#0c121a] p-6 shadow-2xl shadow-cyan-950/20 sm:p-10 lg:p-12">
+                    <div
+                      className="absolute inset-0 opacity-40"
+                      style={{
+                        backgroundImage:
+                          'linear-gradient(rgba(41,219,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(41,219,255,.08) 1px, transparent 1px)',
+                        backgroundSize: '28px 28px',
+                        maskImage: 'linear-gradient(to bottom, black, transparent 80%)',
+                      }}
+                    />
+                    <div className="relative grid items-center gap-10 lg:grid-cols-[1.05fr_.95fr]">
+                      <div className="lift">
+                        <div className="mb-5 flex flex-wrap items-center gap-2">
+                          <MiniBadge tone="cyan">MAPA VISUAL DO SISTEMA</MiniBadge>
+                          <MiniBadge tone="violet">ANTES DE CONSTRUIR</MiniBadge>
+                        </div>
+                        <h1 className="font-display max-w-2xl text-4xl font-semibold leading-[1.03] tracking-[-0.04em] text-white sm:text-6xl">
+                          A história do cliente começa antes dele virar cliente.
+                        </h1>
+                        <p className="mt-6 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
+                          A conversa de vendas fica guardada. Quando ele paga, ela se junta ao
+                          cadastro. Depois, cada reunião, mensagem, processo e entrega alimenta uma
+                          memória que qualquer pessoa consegue consultar.
+                        </p>
+                        <div className="mt-7 flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => go('correlacoes')}
+                            className="group inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-4 py-3 text-sm font-bold text-[#061016] transition hover:bg-cyan-200"
+                          >
+                            Ver o caminho da informação{' '}
+                            <ArrowRight
+                              size={16}
+                              className="transition group-hover:translate-x-1"
+                            />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => go('notas')}
+                            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-300/30 hover:bg-cyan-300/10"
+                          >
+                            <BookOpen size={16} />
+                            Ver exemplos de notas
+                          </button>
+                        </div>
+                        <div className="mt-8 flex flex-wrap gap-5 text-xs text-slate-500">
+                          <span className="flex items-center gap-2">
+                            <CheckCircle2 size={14} className="text-emerald-400" />
+                            Tudo com origem
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <CheckCircle2 size={14} className="text-emerald-400" />
+                            Nada duplicado
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <CheckCircle2 size={14} className="text-emerald-400" />
+                            Texto humano
+                          </span>
+                        </div>
+                      </div>
+                      <div className="relative mx-auto h-[350px] w-full max-w-[470px] sm:h-[390px]">
+                        <div className="absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/15 bg-cyan-300/[0.04] shadow-[0_0_100px_rgba(41,219,255,.11)]" />
+                        <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full border border-violet-300/15" />
+                        <div className="float-slow absolute left-1/2 top-1/2 z-10 w-[215px] -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-white/15 bg-[#101a24]/95 p-4 shadow-2xl backdrop-blur-xl">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 to-violet-400 text-lg font-black text-[#061016]">
+                              CF
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-white">Cleiton Fertilizantes</p>
+                              <p className="mt-0.5 text-[10px] text-slate-500">
+                                Exemplo de ficha viva
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-4 flex items-end justify-between">
+                            <div>
+                              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                                Momento
+                              </p>
+                              <p className="mt-1 text-3xl font-bold text-cyan-300">72</p>
+                            </div>
+                            <div className="text-right">
+                              <MiniBadge tone="cyan">quente</MiniBadge>
+                              <p className="mt-1 text-[10px] text-emerald-400">subindo ↗</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                            <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-violet-400 via-cyan-300 to-emerald-300" />
+                          </div>
+                          <div className="mt-4 flex items-center gap-2 border-t border-white/[0.08] pt-3 text-[10px] text-slate-400">
+                            <Activity size={12} className="text-cyan-300" />
+                            Última novidade: call produtiva
+                          </div>
+                        </div>
+                        <div className="absolute left-0 top-10">
+                          <SourcePill item={sourceCards[0]} />
+                        </div>
+                        <div className="absolute right-0 top-12">
+                          <SourcePill item={sourceCards[1]} />
+                        </div>
+                        <div className="absolute bottom-12 left-2">
+                          <SourcePill item={sourceCards[2]} />
+                        </div>
+                        <div className="absolute bottom-7 right-1">
+                          <SourcePill item={sourceCards[3]} />
+                        </div>
+                        <div className="absolute left-1/2 top-0 -translate-x-1/2">
+                          <SourcePill item={sourceCards[4]} />
+                        </div>
+                        <div className="absolute left-[14%] top-[32%] h-px w-[25%] rotate-[18deg] bg-gradient-to-r from-cyan-300/0 via-cyan-300/30 to-cyan-300/0" />
+                        <div className="absolute right-[14%] top-[33%] h-px w-[25%] -rotate-[18deg] bg-gradient-to-r from-violet-300/0 via-violet-300/30 to-violet-300/0" />
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </section>
+                  </section>
 
-            <section>
-              <h2 className="mb-3 text-lg font-semibold text-white">
-                O que a liderança vai perguntar, e onde está a resposta
-              </h2>
-              <div className="overflow-hidden rounded-xl border border-slate-800">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-800/60 text-left text-slate-400">
-                    <tr>
-                      <th className="px-4 py-2.5 font-medium">Pergunta</th>
-                      <th className="px-4 py-2.5 font-medium">A resposta está em</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {perguntas.map((q) => (
-                      <tr key={q.p} className="border-t border-slate-800/70">
-                        <td className="px-4 py-2.5 text-slate-200">"{q.p}"</td>
-                        <td className="px-4 py-2.5 text-cyan-300/90">{q.resolve}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
+                  <section className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <MetricCard
+                      value="5"
+                      label="fontes de vida real"
+                      detail="conversas, portal, WhatsApp, Drive e GitHub"
+                      tone="cyan"
+                      icon={Network}
+                    />
+                    <MetricCard
+                      value="10"
+                      label="partes da memória"
+                      detail="cada uma guarda um pedaço diferente da história"
+                      tone="violet"
+                      icon={Database}
+                    />
+                    <MetricCard
+                      value="7"
+                      label="tipos de nota"
+                      detail="cada nota responde uma pergunta diferente"
+                      tone="green"
+                      icon={BookOpen}
+                    />
+                    <MetricCard
+                      value="1"
+                      label="chave para juntar tudo"
+                      detail="a ficha do cliente liga o passado ao presente"
+                      tone="amber"
+                      icon={KeyRound}
+                    />
+                  </section>
 
-            <section className="grid gap-4 md:grid-cols-3">
-              {[
-                {
-                  t: 'Nada entra duas vezes',
-                  d: 'Se a mesma call, mensagem ou documento aparecer de novo, o banco percebe e ignora. E o original fica guardado, se a IA errar, refaz sem perder nada.',
-                },
-                {
-                  t: 'Tudo tem rastro',
-                  d: 'Cada decisão, problema, processo e solução sabe de qual conversa ou documento saiu. Sempre dá pra voltar na origem e conferir.',
-                },
-                {
-                  t: 'Nada muda sem motivo',
-                  d: 'O humor do cliente nunca esfria ou esquenta do nada: cada mudança vem com a frase que causou. E as notas são sempre refeitas do banco, se um dado muda, a nota muda junto.',
-                },
-              ].map((c) => (
-                <div key={c.t} className="rounded-xl border border-slate-800 bg-[#0d1219] p-4">
-                  <h3 className="mb-1.5 font-semibold text-cyan-300">{c.t}</h3>
-                  <p className="text-sm text-slate-400">{c.d}</p>
-                </div>
-              ))}
-            </section>
-          </div>
-        )}
+                  <section className="mt-14">
+                    <SectionHeader
+                      eyebrow="A história acontecendo"
+                      title="Como uma informação vira memória"
+                      copy="Uma informação não cai direto em uma nota. Ela passa por uma sequência simples, para ficar guardada com contexto e com a origem visível."
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => go('fontes')}
+                          className="hidden items-center gap-2 text-xs font-semibold text-cyan-300 sm:flex"
+                        >
+                          Ver todas as fontes <ArrowUpRight size={14} />
+                        </button>
+                      }
+                    />
+                    <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-stretch">
+                      <ProcessCard
+                        step="01"
+                        title="Acontece"
+                        copy="Uma call, uma mensagem, um documento ou uma entrega aparece."
+                        icon={Zap}
+                        tone="cyan"
+                      />
+                      <FlowArrow />
+                      <ProcessCard
+                        step="02"
+                        title="Ganha contexto"
+                        copy="A informação recebe assunto, cliente, data e origem. A IA ajuda a organizar, não inventa."
+                        icon={Sparkles}
+                        tone="violet"
+                      />
+                      <FlowArrow />
+                      <ProcessCard
+                        step="03"
+                        title="Vira algo útil"
+                        copy="Entra na memória certa: ata, decisão, problema, processo ou solução."
+                        icon={BookOpen}
+                        tone="green"
+                      />
+                    </div>
+                  </section>
 
-        {/* ============ FONTES ============ */}
-        {tab === 'fontes' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">De onde vem cada informação</h2>
-            <p className="text-sm text-slate-400">
-              Cinco lugares. Cada um tem seu fluxo automático e sua forma de saber de quem é a
-              informação.
-            </p>
-            {fontes.map((f) => (
-              <div key={f.nome} className={`rounded-xl border p-5 ${corBorda[f.cor]}`}>
-                <div className="mb-3 flex flex-wrap items-center gap-3">
-                  <span className="text-2xl">{f.icone}</span>
-                  <h3 className="text-base font-semibold text-white">{f.nome}</h3>
-                  <span className="rounded-full border border-slate-600 bg-slate-800/70 px-2.5 py-0.5 text-xs text-slate-300">
-                    {f.wf}
-                  </span>
-                </div>
-                <div className="grid gap-3 text-sm md:grid-cols-2">
-                  <div>
-                    <span className="font-medium text-slate-300">O que entrega:</span>{' '}
-                    <span className="text-slate-400">{f.entrega}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-300">Quando dispara:</span>{' '}
-                    <span className="text-slate-400">{f.gatilho}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-300">Sem duplicar:</span>{' '}
-                    <span className="text-slate-400">{f.idempotencia}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-slate-300">Como sabe de quem é:</span>{' '}
-                    <span className="text-slate-400">{f.correlacao}</span>
-                  </div>
-                  <div className="md:col-span-2">
-                    <span className="font-medium text-slate-300">Vira:</span>{' '}
-                    <span className="text-violet-300/90">{f.destino}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                  <section className="mt-14 grid gap-5 xl:grid-cols-[1.1fr_.9fr]">
+                    <div>
+                      <SectionHeader
+                        eyebrow="Exemplo de leitura"
+                        title="Uma nota que já responde sem você garimpar"
+                        copy="O visual final precisa parecer uma boa ficha de cliente. A pessoa bate o olho e entende o momento antes de abrir os detalhes."
+                      />
+                      <NotePreview note={noteCards[0]} />
+                    </div>
+                    <div>
+                      <div className="mb-6 flex items-end justify-between">
+                        <div>
+                          <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-violet-300/70">
+                            <span className="h-1.5 w-1.5 rounded-full bg-violet-300" />
+                            Linha do tempo
+                          </div>
+                          <h3 className="font-display text-2xl font-semibold text-white">
+                            O que foi mudando
+                          </h3>
+                        </div>
+                        <MiniBadge tone="violet">4 sinais</MiniBadge>
+                      </div>
+                      <div className="relative space-y-3 pl-5 before:absolute before:bottom-4 before:left-[7px] before:top-4 before:w-px before:bg-gradient-to-b before:from-cyan-300/50 via-violet-300/30 to-transparent">
+                        {timeline.map((event) => {
+                          const Icon = event.icon
+                          const colors = toneMap[event.tone]
+                          return (
+                            <div
+                              key={event.date}
+                              className="relative rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 transition hover:border-white/15"
+                            >
+                              <span
+                                className={`absolute -left-[24px] top-5 h-3.5 w-3.5 rounded-full border-4 border-[#07090d] ${colors.dot}`}
+                              />
+                              <div className="flex items-start gap-3">
+                                <span
+                                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${colors.bg} ${colors.text}`}
+                                >
+                                  <Icon size={15} />
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <p className="text-xs font-bold text-white">{event.label}</p>
+                                    <span className="text-[10px] text-slate-600">{event.date}</span>
+                                  </div>
+                                  <p className="mt-1 text-xs leading-5 text-slate-400">
+                                    {event.copy}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </section>
 
-        {/* ============ BANCO ============ */}
-        {tab === 'banco' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Como tudo é guardado</h2>
-            <p className="text-sm text-slate-400">
-              Um banco novo, só disso. A ficha do cliente é o centro: tudo se liga nela. E tudo que
-              chega passa primeiro pela caixa de entrada, que guarda o original, dá sempre pra
-              refazer.
-            </p>
-            {tabelas.map((t) => (
-              <div key={t.nome} className="rounded-xl border border-slate-800 bg-[#0d1219] p-5">
-                <div className="mb-2 flex flex-wrap items-baseline gap-3">
-                  <h3 className="text-base font-semibold text-violet-300">{t.nome}</h3>
-                  <span className="text-sm text-slate-400">{t.papel}</span>
-                </div>
-                <p className="mb-2 text-sm text-slate-400">
-                  <span className="font-medium text-slate-300">O que tem dentro:</span> {t.campos}
-                </p>
-                <p className="text-sm text-cyan-300/80">
-                  <span className="font-medium text-slate-300">Como se liga:</span> {t.refs}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+                  <section className="mt-14">
+                    <SectionHeader
+                      eyebrow="Memórias atômicas"
+                      title="Cada tipo de nota tem uma função"
+                      copy="Não é uma nota gigante com tudo misturado. São memórias pequenas, conectadas e fáceis de consultar."
+                      action={
+                        <button
+                          type="button"
+                          onClick={() => go('notas')}
+                          className="hidden items-center gap-2 text-xs font-semibold text-cyan-300 sm:flex"
+                        >
+                          Abrir exemplos <ArrowRight size={14} />
+                        </button>
+                      }
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {noteCards.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          onClick={() => {
+                            setActiveNote(note.id)
+                            go('notas')
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </section>
 
-        {/* ============ CORRELAÇÕES ============ */}
-        {tab === 'correlacoes' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Como cada coisa se liga na outra</h2>
-            <p className="text-sm text-slate-400">
-              O mapa completo: quem puxa o quê, de onde, e como junta tudo na ficha do cliente.
-            </p>
-            <div className="overflow-hidden rounded-xl border border-slate-800">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-800/60 text-left text-slate-400">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">De</th>
-                    <th className="px-4 py-2.5 font-medium">Para</th>
-                    <th className="px-4 py-2.5 font-medium">O que é</th>
-                    <th className="px-4 py-2.5 font-medium">Como funciona</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {correlacoes.map((c, i) => (
-                    <tr key={i} className="border-t border-slate-800/70 align-top">
-                      <td className="px-4 py-2.5 text-cyan-300/90">{c.de}</td>
-                      <td className="px-4 py-2.5 text-violet-300/90">{c.para}</td>
-                      <td className="px-4 py-2.5 text-slate-300">{c.tipo}</td>
-                      <td className="px-4 py-2.5 text-slate-400">{c.como}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4 text-sm text-slate-300">
-              <strong className="text-cyan-300">O pulo do gato:</strong> a call de vendas fica
-              guardada mesmo antes do cliente existir. Quando ele paga e a conta é criada, o sistema
-              busca tudo que estava no email dele e junta na pasta dele, a memória começa na
-              PRIMEIRA conversa, não na primeira consultoria.
-            </div>
-          </div>
-        )}
-
-        {/* ============ NOTAS ============ */}
-        {tab === 'notas' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">
-              As notas, uma memória que dá gosto de ler
-            </h2>
-            <p className="text-sm text-slate-400">
-              Cada nota é pequena e de um assunto só. Todas carregam as mesmas etiquetas no topo
-              (nicho, temperatura, consultor), dá pra filtrar em qualquer uma. E ninguém escreve
-              nota à mão: elas são sempre refeitas do banco, então nunca ficam velhas.
-            </p>
-            {tiposNota.map((n) => (
-              <div key={n.nome} className="rounded-xl border border-slate-800 bg-[#0d1219] p-5">
-                <div className="mb-2 flex flex-wrap items-center gap-3">
-                  <h3 className="text-base font-semibold text-emerald-300">{n.nome}</h3>
-                  <span className="rounded-full border border-slate-700 bg-slate-800/70 px-2.5 py-0.5 text-xs text-slate-300">
-                    {n.granularidade}
-                  </span>
-                  <span className="rounded-full border border-slate-700 bg-slate-800/70 px-2.5 py-0.5 text-xs text-slate-300">
-                    {n.mutavel}
-                  </span>
-                </div>
-                <p className="mb-2 text-sm text-slate-300">
-                  <span className="font-medium text-white">Responde:</span> {n.responde}
-                </p>
-                <p className="mb-2 text-sm text-slate-400">
-                  <span className="font-medium text-slate-300">O que mais aparece no topo:</span>{' '}
-                  {n.especificos}
-                </p>
-                <p className="text-sm text-slate-400">
-                  <span className="font-medium text-slate-300">Como é por dentro:</span> {n.corpo}
-                </p>
-              </div>
-            ))}
-            <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-5">
-              <h3 className="mb-2 text-base font-semibold text-white">
-                Como fica a pasta de cada cliente (quando o Obsidian entrar)
-              </h3>
-              <pre className="overflow-x-auto rounded-lg bg-black/40 p-4 text-xs text-slate-300">{`Segundo Cérebro/
-├── Clientes/
-│   └── Cleiton Fertilizantes/
-│       ├── 00-Geral, Cleiton Fertilizantes.md
-│       ├── 01-Decisões, Cleiton Fertilizantes.md
-│       ├── 02-Problemas, Cleiton Fertilizantes.md
-│       ├── 03-Processos, Cleiton Fertilizantes.md
-│       ├── 04-Soluções, Cleiton Fertilizantes.md
-│       └── Atas/
-│           └── 2026-09-15, 1ª Consultoria.md
-└── Recortes/
-    ├── Clientes de Agro.md
-    ├── Clientes do Navaar.md
-    └── Quem tá em Risco.md`}</pre>
-              <p className="mt-2 text-sm text-slate-400">
-                Até lá, as notas já vivem prontas no banco, dá pra ler e buscar tudo por lá.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ============ FRONTMATTER ============ */}
-        {tab === 'frontmatter' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">
-              As etiquetas do topo, o que permite achar depois
-            </h2>
-            <p className="text-sm text-slate-400">
-              Toda nota começa com um bloco de etiquetas. Cada uma existe por um motivo: tem uma
-              pergunta que só ela responde. Quase tudo é automático, ninguém fica preenchendo isso à
-              mão.
-            </p>
-            <div className="overflow-hidden rounded-xl border border-slate-800">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-800/60 text-left text-slate-400">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">Etiqueta</th>
-                    <th className="px-4 py-2.5 font-medium">O que é</th>
-                    <th className="px-4 py-2.5 font-medium">Quem preenche</th>
-                    <th className="px-4 py-2.5 font-medium">Pra que serve</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fmComum.map((f) => (
-                    <tr key={f.campo} className="border-t border-slate-800/70">
-                      <td className="px-4 py-2.5 text-cyan-300/90">{f.campo}</td>
-                      <td className="px-4 py-2.5 text-slate-400">{f.tipo}</td>
-                      <td className="px-4 py-2.5 text-slate-400">{f.origem}</td>
-                      <td className="px-4 py-2.5 text-slate-300">{f.uso}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-5">
-              <h3 className="mb-2 text-base font-semibold text-white">
-                Como fica o topo de uma nota
-              </h3>
-              <pre className="overflow-x-auto rounded-lg bg-black/40 p-4 text-xs text-slate-300">{`cliente: "Cleiton Fertilizantes"
-apelidos: ["Cleiton", "Cleiton ME"]
-tipo: geral
-produto: native
-nicho: agro
-segmento: "fertilizantes especiais"
-status: ativo
-fase do projeto: em construção
-temperatura: 72 (quente, subindo)
-consultor: "Felipe Navaar" · CSM: "Izabel"
-tags: escopo, API, prazo
-atualizada em: 17/09/2026`}</pre>
-            </div>
-          </div>
-        )}
-
-        {/* ============ TEMPERATURA ============ */}
-        {tab === 'temperatura' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">
-              A temperatura, o humor do cliente, em número
-            </h2>
-            <p className="text-sm text-slate-400">
-              Começa em 50 quando o cliente entra. Sobe e desce com o que acontece: cada reunião,
-              cada mensagem no WhatsApp. E o mais importante: nenhuma mudança acontece sem que fique
-              escrito o porquê.
-            </p>
-            <div className="overflow-hidden rounded-xl border border-slate-800">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-800/60 text-left text-slate-400">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">O que aconteceu</th>
-                    <th className="px-4 py-2.5 font-medium">Mexe quanto</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {temperaturas.map((t) => (
-                    <tr key={t.evento} className="border-t border-slate-800/70">
-                      <td className="px-4 py-2.5 text-slate-300">{t.evento}</td>
-                      <td
-                        className={`px-4 py-2.5 font-mono text-xs ${t.delta.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'}`}
+                  <section className="mt-14 rounded-3xl border border-white/[0.08] bg-gradient-to-r from-cyan-400/[0.08] via-white/[0.03] to-violet-400/[0.08] p-6 sm:p-8">
+                    <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+                      <div>
+                        <MiniBadge tone="cyan">A pergunta que guia tudo</MiniBadge>
+                        <h3 className="mt-4 font-display text-2xl font-semibold text-white">
+                          Onde está a resposta quando alguém pergunta sobre um cliente?
+                        </h3>
+                        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+                          Ela não fica escondida em um lugar só. A ficha mostra o momento atual. As
+                          notas mostram a história. A busca encontra o trecho. E a origem prova de
+                          onde aquilo saiu.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => go('correlacoes')}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-4 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-300/20"
                       >
-                        {t.delta}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        Ver mapa completo <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  </section>
+                </>
+              )}
+
+              {tab === 'fontes' && <SourcesView onGo={go} />}
+              {tab === 'banco' && (
+                <DatabaseView
+                  activeTable={activeTable}
+                  setActiveTable={setActiveTable}
+                  selectedTable={selectedTable}
+                  SelectedTableIcon={SelectedTableIcon}
+                />
+              )}
+              {tab === 'correlacoes' && <CorrelationsView onGo={go} />}
+              {tab === 'notas' && (
+                <NotesView
+                  activeNote={activeNote}
+                  setActiveNote={setActiveNote}
+                  selectedNote={selectedNote}
+                  SelectedNoteIcon={SelectedNoteIcon}
+                />
+              )}
+              {tab === 'frontmatter' && <FrontmatterView />}
+              {tab === 'temperatura' && <TemperatureView />}
+              {tab === 'execucao' && <ExecutionView />}
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-4 text-sm text-slate-300">
-                <strong className="text-rose-300">A regra que não quebra:</strong> a IA não pode
-                esfriar um cliente por causa de uma palavra solta. "Se porventura a gente desistir"
-                é hipótese, não ameaça. Ela olha a frase inteira, o contexto e a intenção, e sempre
-                cita a frase que justificou a mudança.
-              </div>
-              <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-4 text-sm text-slate-300">
-                <strong className="text-cyan-300">As faixas:</strong> quente (75 pra cima) · morno
-                (50 a 74) · frio (25 a 49) · risco (abaixo de 25). A faixa sai do número, ninguém
-                escolhe à mão. E cada mudança fica registrada com o motivo, é o que responde "por
-                que ele esfriou?".
-              </div>
+          </main>
+          <footer className="border-t border-white/[0.07] bg-[#07090d] px-6 py-5 text-center text-[10px] text-slate-600">
+            Segundo Cérebro · mapa visual antes da execução · linguagem feita para gente
+          </footer>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MetricCard({
+  value,
+  label,
+  detail,
+  tone,
+  icon: Icon,
+}: {
+  value: string
+  label: string
+  detail: string
+  tone: string
+  icon: any
+}) {
+  const colors = toneMap[tone]
+  return (
+    <div
+      className={`rounded-2xl border ${colors.border} ${colors.soft} p-4 transition hover:-translate-y-0.5 hover:bg-white/[0.04]`}
+    >
+      <div className="flex items-start justify-between">
+        <p className={`font-display text-3xl font-bold ${colors.text}`}>{value}</p>
+        <Icon size={17} className={colors.text} strokeWidth={1.7} />
+      </div>
+      <p className="mt-2 text-xs font-bold text-slate-200">{label}</p>
+      <p className="mt-1 text-[10px] leading-4 text-slate-500">{detail}</p>
+    </div>
+  )
+}
+
+function ProcessCard({
+  step,
+  title,
+  copy,
+  icon: Icon,
+  tone,
+}: {
+  step: string
+  title: string
+  copy: string
+  icon: any
+  tone: string
+}) {
+  const colors = toneMap[tone]
+  return (
+    <div className={`relative rounded-2xl border ${colors.border} ${colors.soft} p-5`}>
+      <div className="flex items-center justify-between">
+        <span className={`font-mono text-[10px] font-bold tracking-[0.2em] ${colors.text}`}>
+          {step}
+        </span>
+        <span
+          className={`flex h-9 w-9 items-center justify-center rounded-xl ${colors.bg} ${colors.text}`}
+        >
+          <Icon size={17} />
+        </span>
+      </div>
+      <h3 className="mt-6 font-display text-lg font-semibold text-white">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-400">{copy}</p>
+    </div>
+  )
+}
+
+function FlowArrow() {
+  return (
+    <div className="hidden items-center justify-center text-slate-700 lg:flex">
+      <ArrowRight size={21} />
+    </div>
+  )
+}
+
+function NotePreview({ note }: { note: (typeof noteCards)[number] }) {
+  const colors = toneMap[note.tone]
+  const Icon = note.icon
+  return (
+    <div className="overflow-hidden rounded-3xl border border-white/[0.1] bg-[#0e141d] shadow-2xl shadow-black/20">
+      <div className="border-b border-white/[0.08] bg-white/[0.025] px-5 py-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <MiniBadge tone="cyan">NOTA GERADA</MiniBadge>
+          <span className="text-[10px] text-slate-600">atualizada agora</span>
+        </div>
+        <div className="mt-4 flex items-center gap-3">
+          <div
+            className={`flex h-11 w-11 items-center justify-center rounded-2xl ${colors.bg} ${colors.text}`}
+          >
+            <Icon size={20} />
+          </div>
+          <div>
+            <p className="font-display text-lg font-semibold text-white">
+              00 Geral · Cleiton Fertilizantes
+            </p>
+            <p className="text-xs text-slate-500">
+              A visão que você abre antes de perguntar qualquer coisa
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="p-5">
+        <div className="flex flex-wrap gap-2">
+          <MiniBadge tone="cyan">agro</MiniBadge>
+          <MiniBadge tone="violet">em construção</MiniBadge>
+          <MiniBadge tone="green">Felipe Navaar</MiniBadge>
+          <MiniBadge tone="amber">escopo</MiniBadge>
+        </div>
+        <p className="mt-5 text-sm leading-6 text-slate-300">{note.preview}</p>
+        <div className="mt-5 rounded-2xl border border-white/[0.08] bg-black/20 p-4">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">Temperatura</p>
+              <p className="mt-1 font-display text-3xl font-bold text-cyan-300">72</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-semibold text-cyan-200">Quente</p>
+              <p className="mt-1 text-[10px] text-emerald-400">subindo nos últimos sinais</p>
             </div>
           </div>
-        )}
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.08]">
+            <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-violet-400 via-cyan-300 to-emerald-300" />
+          </div>
+          <div className="mt-3 flex items-center justify-between text-[10px] text-slate-600">
+            <span>frio</span>
+            <span>morno</span>
+            <span>quente</span>
+          </div>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          {[
+            'Problemas em aberto: 3',
+            'Decisões recentes: 14',
+            'Processos mapeados: 4',
+            'Próximo passo: integração',
+          ].map((item) => (
+            <div
+              key={item}
+              className="rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2 text-[10px] text-slate-400"
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
-        {/* ============ EXECUÇÃO ============ */}
-        {tab === 'execucao' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Por onde a gente começa</h2>
-            <p className="text-sm text-slate-400">
-              Nada roda antes do escopo estar fechado. A ordem é essa:
-            </p>
-            <div className="space-y-3">
-              {fases.map((f) => (
-                <div
-                  key={f.fase}
-                  className="flex gap-4 rounded-xl border border-slate-800 bg-[#0d1219] p-4"
-                >
-                  <span className="flex h-10 w-12 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 text-sm font-bold text-cyan-300 ring-1 ring-cyan-500/40">
-                    {f.fase}
+function NoteCard({ note, onClick }: { note: (typeof noteCards)[number]; onClick: () => void }) {
+  const colors = toneMap[note.tone]
+  const Icon = note.icon
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group text-left rounded-2xl border ${colors.border} ${colors.soft} p-4 transition hover:-translate-y-1 hover:bg-white/[0.05]`}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <span
+            className={`flex h-9 w-9 items-center justify-center rounded-xl ${colors.bg} ${colors.text}`}
+          >
+            <Icon size={17} />
+          </span>
+          <div>
+            <p className={`font-mono text-[10px] font-bold ${colors.text}`}>{note.number}</p>
+            <h3 className="text-sm font-bold text-white">{note.name}</h3>
+          </div>
+        </div>
+        <ArrowUpRight size={15} className="text-slate-600 transition group-hover:text-white" />
+      </div>
+      <p className="mt-4 text-xs font-semibold text-slate-300">{note.question}</p>
+      <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-500">{note.section}</p>
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {note.fields.map((field) => (
+          <span
+            key={field}
+            className="rounded-md bg-white/[0.06] px-2 py-1 text-[9px] text-slate-500"
+          >
+            {field}
+          </span>
+        ))}
+      </div>
+    </button>
+  )
+}
+
+function SourcesView({ onGo }: { onGo: (next: string) => void }) {
+  return (
+    <div className="lift">
+      <SectionHeader
+        eyebrow="Cinco pontos de entrada"
+        title="De onde vem cada parte da história"
+        copy="Cada fonte tem uma função. O sistema não tenta misturar tudo de uma vez. Ele reconhece o lugar, entende o que aquele lugar sabe e entrega para a memória certa."
+        action={<MiniBadge tone="cyan">5 fontes conectadas</MiniBadge>}
+      />
+      <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+        {sourceCards.map((item, index) => {
+          const Icon = item.icon
+          const colors = toneMap[item.tone]
+          return (
+            <div
+              key={item.id}
+              className={`relative overflow-hidden rounded-2xl border ${colors.border} ${colors.soft} p-4`}
+            >
+              <div className={`absolute right-3 top-3 text-4xl font-black opacity-[0.06]`}>
+                0{index + 1}
+              </div>
+              <span
+                className={`flex h-10 w-10 items-center justify-center rounded-xl ${colors.bg} ${colors.text}`}
+              >
+                <Icon size={19} />
+              </span>
+              <p className="mt-5 text-xs font-bold text-white">{item.label}</p>
+              <p className="mt-1 text-[10px] text-slate-600">{item.source}</p>
+            </div>
+          )
+        })}
+      </div>
+      <div className="space-y-3">
+        {sourceCards.map((item, index) => {
+          const Icon = item.icon
+          const colors = toneMap[item.tone]
+          return (
+            <div
+              key={item.id}
+              className="group rounded-3xl border border-white/[0.08] bg-white/[0.025] p-5 transition hover:border-white/15"
+            >
+              <div className="grid gap-5 lg:grid-cols-[220px_1fr_1fr_1fr] lg:items-center">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl ${colors.bg} ${colors.text}`}
+                  >
+                    <Icon size={22} />
                   </span>
                   <div>
-                    <h3 className="font-semibold text-white">{f.nome}</h3>
-                    <p className="text-sm text-slate-400">{f.oque}</p>
-                    <p className="mt-1 text-sm text-emerald-300/90">
-                      <span className="font-medium">Pronto quando:</span> {f.aciete}
+                    <p className="text-sm font-bold text-white">{item.label}</p>
+                    <p className="mt-1 text-[10px] text-slate-600">
+                      Entrada {String(index + 1).padStart(2, '0')}
                     </p>
                   </div>
                 </div>
-              ))}
+                <InfoBlock title="O que chega" text={item.input} />
+                <InfoBlock title="O que vira" text={item.output} />
+                <InfoBlock title="Como reconhece" text={item.link} />
+              </div>
             </div>
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-slate-300">
-              <strong className="text-amber-300">O que NÃO entra agora (v1):</strong> editar nota
-              direto no Obsidian (ele só lê) · ficha de quem nunca pagou (as conversas ficam
-              guardadas, mas sem ficha) · dashboard web · clientes Pass e Elite (o sistema já
-              suporta quando quiser expandir).
+          )
+        })}
+      </div>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Callout
+          icon={KeyRound}
+          tone="violet"
+          title="O ponto mais importante"
+          copy="A conversa de vendas pode chegar antes do cadastro. Ela não é descartada. Fica esperando o email do cliente aparecer no portal."
+        />
+        <Callout
+          icon={ShieldCheck}
+          tone="green"
+          title="A regra de cuidado"
+          copy="O sistema guarda a fonte original. Se uma interpretação da IA não fizer sentido, existe um caminho claro para conferir e refazer."
+        />
+      </div>
+      <button
+        type="button"
+        onClick={() => onGo('correlacoes')}
+        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300"
+      >
+        Agora veja como tudo se liga <ArrowRight size={15} />
+      </button>
+    </div>
+  )
+}
+
+function InfoBlock({ title, text }: { title: string; text: string }) {
+  return (
+    <div>
+      <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
+        {title}
+      </p>
+      <p className="text-sm leading-6 text-slate-400">{text}</p>
+    </div>
+  )
+}
+
+function Callout({
+  icon: Icon,
+  tone,
+  title,
+  copy,
+}: {
+  icon: any
+  tone: string
+  title: string
+  copy: string
+}) {
+  const colors = toneMap[tone]
+  return (
+    <div className={`rounded-2xl border ${colors.border} ${colors.soft} p-5`}>
+      <div className="flex gap-3">
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${colors.bg} ${colors.text}`}
+        >
+          <Icon size={17} />
+        </span>
+        <div>
+          <h3 className="text-sm font-bold text-white">{title}</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-400">{copy}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DatabaseView({
+  activeTable,
+  setActiveTable,
+  selectedTable,
+  SelectedTableIcon,
+}: {
+  activeTable: string
+  setActiveTable: (id: string) => void
+  selectedTable: (typeof databaseBlocks)[number]
+  SelectedTableIcon: any
+}) {
+  const colors = toneMap[selectedTable.tone]
+  return (
+    <div className="lift">
+      <SectionHeader
+        eyebrow="A casa da memória"
+        title="Como tudo é guardado"
+        copy="A ficha do cliente é o centro. Ao redor dela ficam as memórias específicas. Cada parte tem uma função, mas nenhuma perde a ligação com a origem."
+        action={<MiniBadge tone="violet">10 blocos de memória</MiniBadge>}
+      />
+      <div className="grid gap-5 xl:grid-cols-[1fr_330px]">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {databaseBlocks.map((item) => {
+            const Icon = item.icon
+            const itemColors = toneMap[item.tone]
+            const active = item.name === activeTable
+            return (
+              <button
+                type="button"
+                key={item.name}
+                onClick={() => setActiveTable(item.name)}
+                className={`group rounded-2xl border p-4 text-left transition ${active ? `${itemColors.border} ${itemColors.soft} shadow-[0_0_30px_rgba(41,219,255,.05)]` : 'border-white/[0.08] bg-white/[0.025] hover:border-white/15'}`}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl ${itemColors.bg} ${itemColors.text}`}
+                  >
+                    <Icon size={17} />
+                  </span>
+                  <ChevronRight size={15} className={active ? itemColors.text : 'text-slate-700'} />
+                </div>
+                <h3 className="mt-4 text-sm font-bold text-white">{item.title}</h3>
+                <p className="mt-1 text-[10px] text-slate-600">{item.name}</p>
+                <p className="mt-3 text-xs leading-5 text-slate-500">{item.copy}</p>
+              </button>
+            )
+          })}
+        </div>
+        <div className="h-fit rounded-3xl border border-white/[0.1] bg-[#0e141d] p-5 xl:sticky xl:top-24">
+          <div className="flex items-center justify-between">
+            <span
+              className={`flex h-11 w-11 items-center justify-center rounded-2xl ${colors.bg} ${colors.text}`}
+            >
+              <SelectedTableIcon size={21} />
+            </span>
+            <MiniBadge tone={selectedTable.tone}>selecionado</MiniBadge>
+          </div>
+          <h3 className="mt-5 font-display text-xl font-semibold text-white">
+            {selectedTable.title}
+          </h3>
+          <p className="mt-1 font-mono text-[10px] text-slate-600">{selectedTable.name}</p>
+          <p className="mt-5 text-sm leading-6 text-slate-400">{selectedTable.copy}</p>
+          <div className="mt-5 space-y-2 border-t border-white/[0.08] pt-4">
+            <DetailRow
+              label="Entra"
+              value={selectedTable.name === 'clientes' ? 'Portal e carteira' : 'Eventos das fontes'}
+            />
+            <DetailRow
+              label="Se liga por"
+              value={selectedTable.name === 'clientes' ? 'email e contas' : 'cliente + origem'}
+            />
+            <DetailRow
+              label="Ajuda a responder"
+              value={
+                selectedTable.name === 'notas'
+                  ? 'qualquer pergunta da equipe'
+                  : 'uma parte da história'
+              }
+            />
+          </div>
+          <div className="mt-5 rounded-2xl border border-cyan-400/15 bg-cyan-400/5 p-3 text-xs leading-5 text-cyan-100/70">
+            Tudo aqui é conectado pela ficha do cliente. O nome muda conforme a parte, mas a
+            história continua sendo uma só.
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 text-xs">
+      <span className="text-slate-600">{label}</span>
+      <span className="text-right text-slate-300">{value}</span>
+    </div>
+  )
+}
+
+function CorrelationsView({ onGo }: { onGo: (next: string) => void }) {
+  return (
+    <div className="lift">
+      <SectionHeader
+        eyebrow="O fio que junta tudo"
+        title="Como uma coisa encontra a outra"
+        copy="O cliente é a âncora. Cada fonte chega por um caminho diferente, mas todas terminam na mesma ficha e nas notas que contam a história."
+        action={<MiniBadge tone="cyan">13 ligações principais</MiniBadge>}
+      />
+      <div className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0b1219] p-5 sm:p-8">
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 50% 50%, rgba(41,219,255,.18), transparent 24%), linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px)',
+            backgroundSize: '100% 100%, 38px 38px, 38px 38px',
+          }}
+        />
+        <div className="relative grid gap-8 lg:grid-cols-[1fr_220px_1fr] lg:items-center">
+          <div className="space-y-3">
+            {sourceCards.slice(0, 3).map((item) => {
+              const Icon = item.icon
+              const colors = toneMap[item.tone]
+              return (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-3 rounded-2xl border ${colors.border} ${colors.soft} p-3`}
+                >
+                  <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl ${colors.bg} ${colors.text}`}
+                  >
+                    <Icon size={16} />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-white">{item.label}</p>
+                    <p className="text-[10px] text-slate-500">entra com contexto</p>
+                  </div>
+                  <ArrowRight size={15} className="ml-auto text-slate-700" />
+                </div>
+              )
+            })}
+          </div>
+          <div className="relative mx-auto flex h-52 w-52 items-center justify-center">
+            <div className="absolute inset-0 rounded-full border border-cyan-300/20" />
+            <div className="absolute inset-5 rounded-full border border-violet-300/20" />
+            <div className="absolute inset-10 rounded-full bg-gradient-to-br from-cyan-300 to-violet-400 p-[1px] shadow-[0_0_70px_rgba(41,219,255,.22)]">
+              <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-[#0b1219] text-center">
+                <BrainCircuit size={26} className="text-cyan-300" />
+                <p className="mt-2 text-sm font-bold text-white">Ficha do cliente</p>
+                <p className="mt-1 text-[10px] text-slate-500">a âncora da história</p>
+              </div>
             </div>
-            <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-4 text-sm text-slate-400">
-              <strong className="text-slate-200">Documentos completos por trás disso:</strong>{' '}
-              escopo (11 seções) · estrutura do banco · os 7 modelos de nota · o desenho dos 5
-              fluxos. Tudo em artifacts/ no meu workspace.
+            <div className="absolute -bottom-4 rounded-full border border-cyan-300/20 bg-[#0b1219] px-3 py-1.5 text-[10px] text-cyan-200">
+              Cleiton · 72 · quente
             </div>
           </div>
-        )}
-      </main>
+          <div className="space-y-3">
+            {sourceCards.slice(3).map((item) => {
+              const Icon = item.icon
+              const colors = toneMap[item.tone]
+              return (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-3 rounded-2xl border ${colors.border} ${colors.soft} p-3`}
+                >
+                  <ArrowRight size={15} className="text-slate-700" />
+                  <span
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl ${colors.bg} ${colors.text}`}
+                  >
+                    <Icon size={16} />
+                  </span>
+                  <div>
+                    <p className="text-xs font-bold text-white">{item.label}</p>
+                    <p className="text-[10px] text-slate-500">vira memória útil</p>
+                  </div>
+                </div>
+              )
+            })}
+            <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/5 p-3">
+              <div className="flex items-center gap-2 text-emerald-300">
+                <BookOpen size={15} />
+                <span className="text-xs font-bold">Notas prontas</span>
+              </div>
+              <p className="mt-1 text-[10px] leading-4 text-slate-500">
+                A equipe lê. A busca encontra. A origem comprova.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        {relationships.map((item, index) => (
+          <div
+            key={item.from}
+            className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4"
+          >
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-600">
+              <span className="text-cyan-300">0{index + 1}</span>
+              {item.label}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-lg bg-cyan-400/10 px-2.5 py-1.5 text-cyan-200">
+                {item.from}
+              </span>
+              <ArrowRight size={14} className="text-slate-600" />
+              <span className="rounded-lg bg-violet-400/10 px-2.5 py-1.5 text-violet-200">
+                {item.to}
+              </span>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-500">{item.copy}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+        <div className="flex items-start gap-3">
+          <KeyRound size={17} className="mt-0.5 text-cyan-300" />
+          <p className="text-sm leading-6 text-cyan-100/75">
+            <strong className="text-cyan-200">O ponto mais importante:</strong> a conversa de vendas
+            pode chegar antes da conta. Quando o email aparece no portal, o sistema junta o passado
+            ao presente. A memória começa na primeira conversa.
+          </p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => onGo('notas')}
+        className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300"
+      >
+        Agora veja o resultado nas notas <ArrowRight size={15} />
+      </button>
+    </div>
+  )
+}
 
-      <footer className="border-t border-slate-800 px-6 py-4 text-center text-xs text-slate-500">
-        Segundo Cérebro (Elite) · Adapta · v1.0, 17/09/2026 · aguardando o ok do Rodrigo
-      </footer>
+function NotesView({
+  activeNote,
+  setActiveNote,
+  selectedNote,
+  SelectedNoteIcon,
+}: {
+  activeNote: string
+  setActiveNote: (id: string) => void
+  selectedNote: (typeof noteCards)[number]
+  SelectedNoteIcon: any
+}) {
+  const colors = toneMap[selectedNote.tone]
+  return (
+    <div className="lift">
+      <SectionHeader
+        eyebrow="O que a equipe vai ler"
+        title="Notas que parecem feitas para humanos"
+        copy="Cada nota tem uma pergunta clara. O topo responde rápido. O restante guarda o contexto, sem transformar tudo em um texto gigante."
+        action={<MiniBadge tone="green">6 exemplos de nota</MiniBadge>}
+      />
+      <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
+        <div className="space-y-2">
+          {noteCards.map((note) => {
+            const Icon = note.icon
+            const itemColors = toneMap[note.tone]
+            const active = note.id === activeNote
+            return (
+              <button
+                type="button"
+                key={note.id}
+                onClick={() => setActiveNote(note.id)}
+                className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${active ? `${itemColors.border} ${itemColors.soft}` : 'border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.04]'}`}
+              >
+                <span
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${itemColors.bg} ${itemColors.text}`}
+                >
+                  <Icon size={17} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-bold text-white">
+                    {note.number} · {note.name}
+                  </span>
+                  <span className="mt-1 block truncate text-[10px] text-slate-500">
+                    {note.question}
+                  </span>
+                </span>
+                <ChevronRight size={15} className={active ? itemColors.text : 'text-slate-700'} />
+              </button>
+            )
+          })}
+          <div className="mt-4 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+              <FolderOpen size={15} className="text-amber-300" />
+              Pasta do cliente
+            </div>
+            <div className="mt-3 space-y-2 border-l border-white/10 pl-3 text-[10px] text-slate-500">
+              <p className="text-slate-300">Cleiton Fertilizantes</p>
+              <p>00 Geral</p>
+              <p>01 Decisões</p>
+              <p>02 Problemas</p>
+              <p>03 Processos</p>
+              <p>04 Soluções</p>
+              <p>Atas por reunião</p>
+            </div>
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-3xl border border-white/[0.1] bg-[#0e141d] shadow-2xl">
+          <div className="border-b border-white/[0.08] bg-white/[0.025] p-5 sm:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl ${colors.bg} ${colors.text}`}
+                >
+                  <SelectedNoteIcon size={22} />
+                </span>
+                <div>
+                  <p className={`font-mono text-[10px] font-bold tracking-[0.2em] ${colors.text}`}>
+                    {selectedNote.number} · NOTA ATÔMICA
+                  </p>
+                  <h3 className="mt-1 font-display text-2xl font-semibold text-white">
+                    {selectedNote.name} · Cleiton Fertilizantes
+                  </h3>
+                </div>
+              </div>
+              <MiniBadge tone="green">gerada do banco</MiniBadge>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <MiniBadge tone="cyan">agro</MiniBadge>
+              <MiniBadge tone="violet">em construção</MiniBadge>
+              <MiniBadge tone="green">Felipe Navaar</MiniBadge>
+              <MiniBadge tone="amber">escopo</MiniBadge>
+              <MiniBadge tone="slate">17/09/2026</MiniBadge>
+            </div>
+          </div>
+          <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[1.15fr_.85fr]">
+            <div>
+              <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-600">
+                <FileText size={13} />
+                Resumo visível
+              </div>
+              <p className="text-base leading-7 text-slate-200">{selectedNote.preview}</p>
+              <div className="mt-6 rounded-2xl border border-white/[0.08] bg-black/15 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
+                  O que esta nota guarda
+                </p>
+                <p className="mt-3 text-sm leading-6 text-slate-400">{selectedNote.section}</p>
+              </div>
+            </div>
+            <div>
+              <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-600">
+                <Tag size={13} />
+                Campos que ajudam a achar
+              </div>
+              <div className="space-y-2">
+                {selectedNote.fields.map((field, index) => (
+                  <div
+                    key={field}
+                    className="flex items-center justify-between rounded-xl border border-white/[0.07] bg-white/[0.025] px-3 py-2.5"
+                  >
+                    <span className="text-xs text-slate-400">{field}</span>
+                    <Check
+                      size={14}
+                      className={index < 2 ? 'text-emerald-400' : 'text-slate-600'}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-white/[0.08] bg-black/10 px-5 py-4 text-xs text-slate-500 sm:px-7">
+            <span className="text-cyan-300">Fonte:</span> a nota sempre aponta para a conversa,
+            documento ou entrega que sustentou aquela frase.
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FrontmatterView() {
+  return (
+    <div className="lift">
+      <SectionHeader
+        eyebrow="As etiquetas do topo"
+        title="O que permite encontrar a nota depois"
+        copy="O nome técnico é frontmatter. Na prática, é o cartão de identificação da nota. Ele diz de quem é, sobre o que fala, em que momento o cliente está e como encontrar outras notas parecidas."
+        action={<MiniBadge tone="cyan">8 campos essenciais</MiniBadge>}
+      />
+      <div className="grid gap-5 xl:grid-cols-[.9fr_1.1fr]">
+        <div className="rounded-3xl border border-white/[0.1] bg-[#0e141d] p-5 sm:p-7">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-300/70">
+                Exemplo visual
+              </p>
+              <h3 className="mt-2 font-display text-xl font-semibold text-white">
+                Topo da nota do Cleiton
+              </h3>
+            </div>
+            <Tag size={20} className="text-cyan-300" />
+          </div>
+          <div className="mt-6 rounded-2xl border border-cyan-400/15 bg-[#080d13] p-4 font-mono text-xs leading-7">
+            <p>
+              <span className="text-violet-300">cliente</span>
+              <span className="text-slate-600">:</span>{' '}
+              <span className="text-emerald-300">"Cleiton Fertilizantes"</span>
+            </p>
+            <p>
+              <span className="text-violet-300">apelidos</span>
+              <span className="text-slate-600">:</span>{' '}
+              <span className="text-amber-300">[Cleiton, Cleiton ME]</span>
+            </p>
+            <p>
+              <span className="text-violet-300">nicho</span>
+              <span className="text-slate-600">:</span> <span className="text-cyan-300">agro</span>
+            </p>
+            <p>
+              <span className="text-violet-300">fase</span>
+              <span className="text-slate-600">:</span>{' '}
+              <span className="text-cyan-300">em construção</span>
+            </p>
+            <p>
+              <span className="text-violet-300">temperatura</span>
+              <span className="text-slate-600">:</span>{' '}
+              <span className="text-cyan-300">72, quente, subindo</span>
+            </p>
+            <p>
+              <span className="text-violet-300">consultor</span>
+              <span className="text-slate-600">:</span>{' '}
+              <span className="text-emerald-300">Felipe Navaar</span>
+            </p>
+            <p>
+              <span className="text-violet-300">tags</span>
+              <span className="text-slate-600">:</span>{' '}
+              <span className="text-amber-300">[escopo, API, prazo]</span>
+            </p>
+            <p>
+              <span className="text-violet-300">atualizada_em</span>
+              <span className="text-slate-600">:</span>{' '}
+              <span className="text-slate-300">17/09/2026</span>
+            </p>
+          </div>
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-violet-400/15 bg-violet-400/5 p-4">
+            <Sparkles size={17} className="mt-0.5 shrink-0 text-violet-300" />
+            <p className="text-xs leading-5 text-violet-100/70">
+              A IA pode sugerir nicho e etiquetas. A pessoa responsável pode corrigir. Depois disso,
+              todas as notas daquele cliente herdam a informação certa.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {frontmatterFields.map((item) => (
+            <div
+              key={item.field}
+              className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 transition hover:border-cyan-300/20"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-mono text-[10px] font-bold text-cyan-300">{item.field}</span>
+                <CheckCircle2 size={14} className="text-emerald-400" />
+              </div>
+              <p className="mt-3 text-sm font-semibold text-white">{item.value}</p>
+              <p className="mt-2 text-[10px] text-slate-600">Vem de: {item.source}</p>
+              <p className="mt-3 text-xs leading-5 text-slate-500">{item.reason}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mt-5 rounded-3xl border border-white/[0.08] bg-white/[0.025] p-5 sm:p-7">
+        <div className="flex items-center gap-3">
+          <Search size={18} className="text-cyan-300" />
+          <div>
+            <h3 className="text-sm font-bold text-white">As etiquetas respondem perguntas reais</h3>
+            <p className="mt-1 text-xs text-slate-500">Elas não existem para enfeitar a nota.</p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <QuestionCard
+            question="Quais clientes de agro estão em risco?"
+            answer="nicho + temperatura"
+          />
+          <QuestionCard
+            question="Quais clientes do Navaar estão parados?"
+            answer="consultor + fase"
+          />
+          <QuestionCard
+            question="Quais problemas aparecem mais?"
+            answer="tags + nota de problemas"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function QuestionCard({ question, answer }: { question: string; answer: string }) {
+  return (
+    <div className="rounded-2xl border border-white/[0.08] bg-black/15 p-4">
+      <Quote size={14} className="text-violet-300" />
+      <p className="mt-3 text-xs leading-5 text-slate-300">{question}</p>
+      <div className="mt-4 flex items-center gap-2 text-[10px] font-semibold text-cyan-300">
+        <ArrowRight size={12} />
+        {answer}
+      </div>
+    </div>
+  )
+}
+
+function TemperatureView() {
+  return (
+    <div className="lift">
+      <SectionHeader
+        eyebrow="O momento do cliente"
+        title="Temperatura não é chute"
+        copy="É uma leitura contínua do relacionamento. Reuniões, mensagens, entregas e problemas mudam o número. Cada mudança precisa ter contexto e uma fonte para conferir."
+        action={<MiniBadge tone="red">sempre com evidência</MiniBadge>}
+      />
+      <div className="grid gap-5 xl:grid-cols-[.85fr_1.15fr]">
+        <div className="rounded-3xl border border-white/[0.1] bg-[#0e141d] p-6 sm:p-8">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-600">
+                Exemplo atual
+              </p>
+              <h3 className="mt-2 font-display text-2xl font-semibold text-white">
+                Cleiton Fertilizantes
+              </h3>
+            </div>
+            <Gauge size={24} className="text-cyan-300" />
+          </div>
+          <div className="mt-9 flex items-end justify-between">
+            <div>
+              <p className="font-display text-7xl font-bold tracking-[-0.06em] text-cyan-300">72</p>
+              <p className="mt-2 text-sm text-slate-400">quente e subindo</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">
+                última mudança
+              </p>
+              <p className="mt-2 text-sm font-semibold text-emerald-300">+5</p>
+              <p className="mt-1 text-[10px] text-slate-500">call produtiva</p>
+            </div>
+          </div>
+          <div className="mt-7 h-3 overflow-hidden rounded-full bg-white/[0.08]">
+            <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-rose-400 via-amber-300 to-emerald-300" />
+          </div>
+          <div className="mt-3 flex justify-between text-[10px] text-slate-600">
+            <span>risco</span>
+            <span>frio</span>
+            <span>morno</span>
+            <span>quente</span>
+          </div>
+          <div className="mt-8 rounded-2xl border border-cyan-400/15 bg-cyan-400/5 p-4">
+            <div className="flex gap-3">
+              <ShieldCheck size={17} className="mt-0.5 shrink-0 text-cyan-300" />
+              <p className="text-xs leading-5 text-cyan-100/70">
+                Uma frase sozinha não muda a leitura. A intenção, o momento e o que aconteceu antes
+                entram juntos.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {temperatureEvents.map((event) => (
+            <div
+              key={event.label}
+              className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-5"
+            >
+              <div className="flex items-start gap-4">
+                <span
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${event.tone === 'up' ? 'bg-emerald-400/10 text-emerald-300' : 'bg-rose-400/10 text-rose-300'}`}
+                >
+                  {event.tone === 'up' ? <ArrowUpRight size={18} /> : <CircleAlert size={18} />}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-bold text-white">{event.label}</h3>
+                    <span
+                      className={`font-mono text-xs font-bold ${event.tone === 'up' ? 'text-emerald-300' : 'text-rose-300'}`}
+                    >
+                      {event.value}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-slate-500">{event.detail}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+          <div className="rounded-2xl border border-violet-400/20 bg-violet-400/5 p-5">
+            <div className="flex gap-3">
+              <BrainCircuit size={18} className="mt-0.5 text-violet-300" />
+              <div>
+                <h3 className="text-sm font-bold text-white">O histórico explica o número</h3>
+                <p className="mt-2 text-xs leading-5 text-slate-400">
+                  Se o cliente esfriou, a equipe consegue ver quando aconteceu, qual foi o motivo e
+                  qual trecho sustentou a leitura.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ExecutionView() {
+  return (
+    <div className="lift">
+      <SectionHeader
+        eyebrow="Da ideia para o mundo"
+        title="Por onde começa"
+        copy="A ordem protege o projeto. Primeiro definimos a casa e testamos uma história completa. Só depois abrimos para todos os clientes."
+        action={<MiniBadge tone="amber">escopo antes da execução</MiniBadge>}
+      />
+      <div className="relative">
+        <div className="absolute bottom-6 left-[22px] top-6 w-px bg-gradient-to-b from-cyan-300/50 via-violet-300/30 to-transparent sm:left-[27px]" />
+        <div className="space-y-3">
+          {phases.map((phase, index) => {
+            const Icon = phase.icon
+            return (
+              <div
+                key={phase.code}
+                className="relative flex gap-4 rounded-3xl border border-white/[0.08] bg-white/[0.025] p-4 transition hover:border-white/15 sm:gap-5 sm:p-5"
+              >
+                <div
+                  className={`relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${phase.done ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300' : 'border-cyan-400/20 bg-[#0b1219] text-cyan-300'}`}
+                >
+                  {phase.done ? <Check size={18} /> : <Icon size={18} />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-cyan-300">
+                      {phase.code}
+                    </span>
+                    <h3 className="text-sm font-bold text-white">{phase.title}</h3>
+                    {phase.done && <MiniBadge tone="green">base definida</MiniBadge>}
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{phase.copy}</p>
+                  <div className="mt-4 flex flex-wrap gap-2 text-[10px] text-slate-500">
+                    <span className="rounded-lg bg-white/[0.05] px-2.5 py-1.5">critério claro</span>
+                    <span className="rounded-lg bg-white/[0.05] px-2.5 py-1.5">
+                      fonte preservada
+                    </span>
+                    {index > 0 && (
+                      <span className="rounded-lg bg-white/[0.05] px-2.5 py-1.5">
+                        vem depois do piloto
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="hidden text-[10px] text-slate-700 sm:block">0{index + 1}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Callout
+          icon={ShieldCheck}
+          tone="green"
+          title="Só avança quando dá para conferir"
+          copy="Cada etapa termina com uma entrega que alguém consegue abrir, ler e validar. Não basta dizer que o fluxo funcionou."
+        />
+        <Callout
+          icon={ListChecks}
+          tone="amber"
+          title="O que fica fora por enquanto"
+          copy="Editar pelo Obsidian, dashboard operacional e clientes Pass ou Elite. A base fica preparada, mas o primeiro ciclo é Native."
+        />
+      </div>
     </div>
   )
 }
