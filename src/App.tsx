@@ -1,65 +1,74 @@
 import { useState } from 'react'
 
-/* ============ DADOS ============ */
+/* ============ DADOS (linguagem clara, humano) ============ */
 
 const fontes = [
   {
     nome: 'tl;dv',
     icone: '🎥',
-    entrega: 'Toda call: vendas, kickoff, consultorias, EBR — transcrição, participantes, data',
-    gatilho: 'Nova call de consultor @adapta.org',
-    wf: 'WF-A · Calls',
-    idempotencia: "(tipo_fonte='tldv', id_externo=meeting_id)",
-    correlacao: 'Email do participante → clientes.email_match; órfãs esperam o match retroativo',
-    destino: 'fontes_ingestao → chunks · atas_reunioes · decisoes · problemas',
+    entrega:
+      'Toda conversa gravada: a call de vendas, o kickoff, as consultorias, o encerramento. O que foi dito, quem tava lá, quando foi.',
+    gatilho: 'Toda vez que um consultor gravar uma call',
+    wf: 'Fluxo 1 · Calls',
+    idempotencia:
+      'Se a mesma call cair duas vezes, o banco percebe e ignora a segunda. Nada é processado em dobro.',
+    correlacao:
+      'O cliente é reconhecido pelo email dele. Se ele ainda nem pagou, a call fica guardada esperando — e quando a conta dele for criada, tudo volta pra ele.',
+    destino: 'Vira memória pesquisável (chunks), ata da reunião, decisões e problemas levantados',
     cor: 'cyan',
   },
   {
-    nome: 'Portal Next (Supabase)',
+    nome: 'Portal',
     icone: '🚪',
-    entrega: 'Conta criada, etapa da jornada, plano, produto',
-    gatilho: 'Cliente pagou → conta criada no portal',
-    wf: 'WF-E · Portal',
-    idempotencia: "(tipo_fonte='portal', id_externo=portal_user_id)",
+    entrega:
+      'O momento em que o cliente vira cliente de verdade: conta criada, em que etapa da jornada ele está, qual plano.',
+    gatilho: 'Cliente pagou e a conta foi criada no portal',
+    wf: 'Fluxo 5 · Portal',
+    idempotencia: 'Cada cliente tem uma conta só. Criou, entra no cérebro.',
     correlacao:
-      'portal_user_id + email → dispara match_retroativo(email) que reatribui TODAS as calls órfãs',
-    destino: 'clientes · temperatura_historico · notas (00-Geral inicial)',
+      'É aqui que a mágica acontece: o sistema pega TUDO que estava guardado no email dele — inclusive a call de vendas de antes de pagar — e junta na pasta dele.',
+    destino: 'A ficha do cliente nasce, com o histórico inteiro desde a primeira conversa',
     cor: 'violet',
   },
   {
-    nome: 'WhatsApp (banco dos agentes)',
+    nome: 'WhatsApp',
     icone: '💬',
     entrega:
-      'Eventos relevantes: reclamações, urgências, churn-risco, elogios — já registrados pelo fluxo SLA',
-    gatilho: 'Evento relevante no SLA existente (lê do banco, não re-ingere)',
-    wf: 'WF-B · WhatsApp',
-    idempotencia: "(tipo_fonte='whatsapp', id_externo=message_id)",
+      'O que o cliente fala no grupo: reclamações, pedidos urgentes, elogios, aquele desabafo. O que já é registrado hoje pelo controle de SLA.',
+    gatilho: 'Algo relevante acontece no grupo do cliente',
+    wf: 'Fluxo 2 · WhatsApp',
+    idempotencia:
+      'Lê o que já está registrado no sistema de SLA — não baixa nem processa mensagem de novo.',
     correlacao:
-      'grupo JID → clientes.whatsapp_grupo; sentimento negativo comprovado derruba temperatura',
-    destino: 'chunks · problemas (recorrencia++) · temperatura_historico',
+      'Cada grupo sabe de quem é. Cliente puto no grupo esfria o cliente na hora — e fica escrito o porquê.',
+    destino:
+      'Vira memória pesquisável, registra o problema (e quantas vezes ele reclamou disso), mexe na temperatura',
     cor: 'green',
   },
   {
-    nome: 'Google Drive',
+    nome: 'Drive',
     icone: '📁',
-    entrega: 'Raio-X, escopos, mapeamentos de processo (antes → depois)',
-    gatilho: 'Novo doc na pasta do cliente',
-    wf: 'WF-C · Docs',
-    idempotencia: "(tipo_fonte='drive', id_externo=file_id)",
-    correlacao: 'drive_pasta_id → clientes.drive_pasta_id; doc citado vira processo com evidência',
-    destino: 'processos (antes/depois/tempo/ganho) · chunks',
+    entrega:
+      'Os mapeamentos de processo: como o processo era antes, quanto tempo gastava, como ficou depois do projeto.',
+    gatilho: 'Documento novo na pasta do cliente',
+    wf: 'Fluxo 3 · Docs',
+    idempotencia: 'Cada documento entra uma vez só.',
+    correlacao:
+      'Cada cliente tem sua pasta. O que é mapeado lá vira a história do processo dele: antes → depois.',
+    destino: 'Vira a nota de processos: quanto tempo levava, quanto leva agora, qual foi o ganho',
     cor: 'amber',
   },
   {
-    nome: 'GitHub Elite',
+    nome: 'GitHub',
     icone: '🐙',
-    entrega: 'Commits nos submódulos = o que foi construído (features, stack, tipo de solução)',
-    gatilho: 'Push no repo/submódulo do cliente',
-    wf: 'WF-D · GitHub',
-    idempotencia: "(tipo_fonte='github', id_externo=commit_sha)",
+    entrega:
+      'O que foi construído de verdade: cada entrega, commit por commit. Se virou um sistema, uma automação, um RPA, qual tecnologia foi usada.',
+    gatilho: 'Alguém sobe código no projeto do cliente',
+    wf: 'Fluxo 4 · GitHub',
+    idempotencia: 'Cada alteração entra uma vez só.',
     correlacao:
-      'github_repo → clientes.github_repo; repo principal = contexto, submódulo = construção',
-    destino: 'solucoes (tipo/stack/status) · chunks',
+      'Cada cliente tem seu projeto. O que é construído lá dentro vira a nota de soluções — o que ele tem hoje, construído com a gente.',
+    destino: 'Vira a nota de soluções: o que faz, com o que foi feito, em que pé está',
     cor: 'slate',
   },
 ]
@@ -67,386 +76,396 @@ const fontes = [
 const tabelas = [
   {
     nome: 'clientes',
-    papel: '1 linha por cliente — a âncora de TODAS as correlações',
+    papel: 'A ficha de cada cliente. É daqui que tudo pende.',
     campos:
-      'id · nome · nicho · segmento · user_goal · email_match · portal_user_id · github_repo · drive_pasta_id · whatsapp_grupo · consultor · csm · temperatura · temperatura_categoria (derivada) · status · produto',
-    refs: 'PK id — referenciada por TODAS as outras tabelas via cliente_id',
+      'nome · nicho · objetivo declarado · email · contas (portal, GitHub, Drive, WhatsApp) · consultor e CSM · temperatura',
+    refs: 'Toda outra tabela aponta pra cá. Achou o cliente, acha tudo.',
   },
   {
     nome: 'fontes_ingestao',
-    papel: '1 linha por evento bruto — idempotência e rastreabilidade',
+    papel:
+      'A caixa de entrada bruta. Tudo que chega (call, mensagem, documento, código) passa por aqui primeiro.',
     campos:
-      'cliente_id (null = órfã) · tipo_fonte · id_externo · url_origem · ocorreu_em · payload (bruto preservado) · status',
-    refs: 'UNIQUE(tipo_fonte, id_externo) · FK cliente_id → clientes · FK fonte_id em chunks/atas/problemas/processos/solucoes',
+      'de qual fonte veio · identificador único · quando aconteceu · o conteúdo original guardado inteiro',
+    refs: 'Se a mesma coisa chegar duas vezes, é ignorada. E o original fica guardado — se a IA errar, dá pra refazer.',
   },
   {
     nome: 'chunks',
-    papel: 'A memória bruta vetorizada — pedaços com assunto + embedding 1536d',
-    campos:
-      'cliente_id (null até match) · fonte_id · conteudo · assunto (IA) · embedding vector(1536) · tokens · metadados',
-    refs: 'FK cliente_id · FK fonte_id → fontes_ingestao · índice HNSW cosine',
+    papel:
+      'A memória de verdade. Cada pedaço de conversa/documento, com assunto e vetor pra busca.',
+    campos: 'trecho · assunto · vetor (pra busca por significado) · de qual evento veio',
+    refs: "É o que permite perguntar 'o que foi falado sobre API?' e achar a parte exata, em qualquer call.",
   },
   {
     nome: 'atas_reunioes',
-    papel: '1 ata por call — resumo, sentimentos, temperatura de entrada/saída',
-    campos:
-      'cliente_id · fonte_id · tipo_call · data_reuniao · resumo · sentimentos · temperatura_entrada · temperatura_saida',
-    refs: 'FK fonte_id → fontes_ingestao · FK ata_id em decisoes',
+    papel: 'A ata de cada reunião: o resumo, o clima da conversa, como o cliente entrou e saiu.',
+    campos: 'data · tipo da call · resumo em poucas linhas · temperatura antes e depois',
+    refs: 'Cada decisão sabe em qual reunião foi tomada, porque aponta pra cá.',
   },
   {
     nome: 'decisoes',
-    papel: '1 linha por decisão que impacta o projeto — cronológico',
-    campos: 'cliente_id · ata_id · data_decisao · decisao · impacto · contexto',
-    refs: 'FK ata_id → atas_reunioes (a decisão sabe EM QUAL call foi tomada)',
+    papel: 'Cada decisão que mexe no projeto, numa linha, na ordem em que aconteceu.',
+    campos: 'o que foi decidido · o que muda no projeto · por que decidiram · em qual reunião',
+    refs: 'É o histórico de decisões do cliente. Ninguém precisa lembrar de cabeça o que foi combinado.',
   },
   {
     nome: 'problemas',
-    papel: 'Dores/reclamações com recorrência — de WhatsApp, calls, projeto',
+    papel:
+      'As dores do cliente: o que ele reclamou, de onde veio (WhatsApp, call, projeto) e quantas vezes.',
     campos:
-      'cliente_id · fonte_id · origem · descricao · gravidade · status · recorrencia · primeira/ultima_mencao',
-    refs: 'FK fonte_id → fontes_ingestao · recorrencia++ a cada nova menção do mesmo tema',
+      'descrição · gravidade · status (aberto, resolvido) · quantas vezes reclamou · primeira e última vez',
+    refs: "É o que responde 'o que ele mais reclamou?' — com número, não com impressão.",
   },
   {
     nome: 'processos',
-    papel: 'Mapeamentos do Drive — antes → depois com tempos e ganho',
+    papel: 'Cada processo mapeado: como era, quanto tempo levava, como ficou, quanto ganhou.',
     campos:
-      'cliente_id · fonte_id · nome_processo · descricao_antes · tempo_antes · descricao_depois · tempo_depois · ganho_medido · drive_doc_id',
-    refs: 'FK fonte_id → fontes_ingestao · drive_doc_id rastreia o raio-X de origem',
+      'nome do processo · antes (descrição + tempo) · depois (descrição + tempo) · ganho · de qual documento veio',
+    refs: "É o que responde 'quanto melhorou?' — com o número de antes e depois.",
   },
   {
     nome: 'solucoes',
-    papel: 'O que foi construído — do GitHub Elite',
+    papel: 'O que foi construído: sistema, automação, RPA, integração — e com qual tecnologia.',
     campos:
-      'cliente_id · fonte_id · nome_solucao · tipo (rpa/saas_criado/saas_usado/automacao/feature/integracao) · stack · repo · submodulo · status · entregue_em',
-    refs: 'FK fonte_id → fontes_ingestao · repo/submodulo → clientes.github_repo',
+      'nome · tipo (sistema criado, automação, RPA, integração, funcionalidade) · tecnologias · em que pé está',
+    refs: "É o que responde 'o que a gente já entregou pra ele?' — sem depender da memória do consultor.",
   },
   {
     nome: 'notas',
-    papel: 'As notas atômicas do Obsidian — markdown + frontmatter + embedding da nota inteira',
-    campos:
-      'cliente_id · tipo_nota · titulo · conteudo_md · frontmatter (jsonb) · versao · embedding vector(1536)',
-    refs: 'UNIQUE(cliente_id, tipo_nota) · frontmatter herda campos de clientes · vetorização dupla',
+    papel: 'As notas prontas — o texto que você lê no Obsidian, já com etiquetas e vetor de busca.',
+    campos: 'tipo da nota · texto completo · etiquetas · versão · vetor',
+    refs: 'Sempre regeneradas do banco. Se um dado muda, a nota muda junto na próxima atualização.',
   },
   {
     nome: 'temperatura_historico',
-    papel: 'Por que a temperatura mudou — delta + motivo + evidência',
-    campos:
-      'cliente_id · valor · delta · motivo · evento_tipo (ata/whatsapp/marco/manual) · evento_ref',
-    refs: 'FK cliente_id · evento_ref aponta para a ata/fonte que gerou a mudança',
+    papel: 'O histórico do humor do cliente: cada mudança com o motivo e a prova.',
+    campos: 'novo valor · quanto subiu ou caiu · por quê · qual evento causou',
+    refs: "É o que responde 'por que esfriou?' — com o trecho da conversa que causou.",
   },
 ]
 
 const correlacoes = [
   {
-    de: 'tl;dv (meeting_id)',
-    para: 'fontes_ingestao.id_externo',
-    tipo: 'ingestão idempotente',
-    como: 'WF-A faz upsert por (tldv, meeting_id); nunca processa 2x a mesma call',
+    de: 'Call no tl;dv',
+    para: 'Caixa de entrada',
+    tipo: 'chega',
+    como: 'Cada call nova entra uma vez só, guardada inteira.',
   },
   {
-    de: 'Participante com email @adapta.org',
-    para: 'clientes.consultor / csm',
-    tipo: 'match de carteira',
-    como: 'Define qual consultor atendeu; cliente confirmado contra a carteira (HubSpot/Portal)',
+    de: 'Consultor na call',
+    para: 'Ficha do cliente',
+    tipo: 'de quem é',
+    como: 'O email do consultor diz quem atendeu. O email do cliente diz de quem é a call.',
   },
   {
-    de: 'Email do cliente na call',
-    para: 'clientes.email_match',
-    tipo: 'correlação primária',
-    como: 'Se o cliente ainda não tem conta no portal, a call fica ÓRFÃ (cliente_id null) — vetorizada e aguardando',
+    de: 'Cliente que ainda não pagou',
+    para: 'Fica guardado esperando',
+    tipo: 'o detalhe que muda tudo',
+    como: 'A call de vendas é guardada mesmo sem cliente ainda. Nada se perde.',
   },
   {
-    de: 'Conta criada no Portal',
-    para: 'match_retroativo(email)',
-    tipo: 'reatribuição retroativa',
-    como: 'RPC reatribui TODAS as fontes órfãs daquele email + seus chunks e atas — a call de VENDA volta para o cliente',
+    de: 'Cliente pagou (conta no portal)',
+    para: 'Tudo volta pra ele',
+    tipo: 'o momento da mágica',
+    como: 'O sistema busca tudo que estava guardado no email dele e junta na pasta dele — inclusive a call de vendas de antes de pagar.',
   },
   {
-    de: 'clientes.id',
-    para: 'cliente_id em TODAS as tabelas',
-    tipo: 'chave universal',
-    como: 'chunks, atas, decisoes, problemas, processos, solucoes, notas e temperatura_historico — tudo se une por cliente_id',
+    de: 'Ficha do cliente',
+    para: 'Todas as outras tabelas',
+    tipo: 'o centro de tudo',
+    como: 'Memória, atas, decisões, problemas, processos, soluções, notas e temperatura — tudo se une na ficha do cliente.',
   },
   {
-    de: 'fontes_ingestao.id',
-    para: 'fonte_id em chunks/atas/problemas/processos/solucoes',
-    tipo: 'rastreabilidade',
-    como: 'Toda informação derivada sabe de qual evento bruto veio (payload preservado para reprocessar)',
+    de: 'Caixa de entrada',
+    para: 'Tudo que é derivado',
+    tipo: 'rastro',
+    como: 'Toda decisão, problema, processo e solução sabe de qual conversa/documento/código veio. Sempre dá pra voltar na origem.',
   },
   {
-    de: 'atas_reunioes.id',
-    para: 'decisoes.ata_id',
-    tipo: 'contexto da decisão',
-    como: 'Cada decisão sabe em qual call foi tomada; a nota 01-Decisões lista por data',
+    de: 'Ata da reunião',
+    para: 'Decisão',
+    tipo: 'contexto',
+    como: 'Cada decisão sabe em qual reunião foi tomada. A nota de decisões lista na ordem, com data.',
   },
   {
-    de: 'WhatsApp grupo JID',
-    para: 'clientes.whatsapp_grupo',
-    tipo: 'mapeamento de grupo',
-    como: 'Eventos relevantes do SLA (reclamação, churn-risco) viram problema + recalculam temperatura com motivo',
+    de: 'Grupo do WhatsApp',
+    para: 'Ficha do cliente',
+    tipo: 'de quem é o grupo',
+    como: 'Reclamação no grupo vira problema registrado — e esfria a temperatura, com o trecho citado.',
   },
   {
-    de: 'Drive pasta',
-    para: 'clientes.drive_pasta_id',
-    tipo: 'mapeamento de pasta',
-    como: 'Docs novos na pasta viram processos (antes→depois) com drive_doc_id citado',
+    de: 'Pasta no Drive',
+    para: 'Ficha do cliente',
+    tipo: 'de quem é a pasta',
+    como: 'Documento novo na pasta vira processo: antes → depois, com tempos e ganho.',
   },
   {
-    de: 'GitHub repo/submódulo',
-    para: 'clientes.github_repo',
-    tipo: 'mapeamento de repo',
-    como: 'Commits no submódulo viram solucoes com tipo/stack/status; repo principal carrega o contexto',
+    de: 'Projeto no GitHub',
+    para: 'Ficha do cliente',
+    tipo: 'de quem é o projeto',
+    como: 'Código novo vira solução registrada: o que faz, com o que foi feito, em que pé está.',
   },
   {
-    de: 'notas.frontmatter',
-    para: 'clientes + tabelas derivadas',
-    tipo: 'herança de campos',
-    como: 'Frontmatter é MONTADO do banco: nicho/temperatura/consultor vêm de clientes; contadores vêm de decisoes/problemas/processos/solucoes',
+    de: 'Banco',
+    para: 'Etiquetas da nota',
+    tipo: 'herança',
+    como: 'As etiquetas do topo da nota vêm prontas do banco: nicho, temperatura, consultor. Ninguém preenche na mão.',
   },
   {
-    de: 'notas.embedding + chunks.embedding',
-    para: 'match_notas / match_chunks',
-    tipo: 'busca semântica',
-    como: 'Vetorização dupla: nota inteira (macro) + seções como chunks (granular). Pergunta em linguagem natural acha a seção exata',
+    de: 'Notas e memória',
+    para: 'Busca por significado',
+    tipo: 'pergunta livre',
+    como: 'Tudo é vetorizado. Pergunta em português normal acha a resposta, mesmo sem saber o nome do campo.',
   },
   {
-    de: 'temperatura_historico',
-    para: 'clientes.temperatura',
-    tipo: 'recálculo auditável',
-    como: 'Cada mudança tem delta + motivo + evidência; categoria é derivada do número, nunca escrita à mão',
+    de: 'Histórico de temperatura',
+    para: 'Temperatura atual',
+    tipo: 'sempre com motivo',
+    como: 'Nada muda sem explicação: cada subida ou queda tem o motivo e a prova escritos.',
   },
 ]
 
 const tiposNota = [
   {
     nome: '00-Geral',
-    granularidade: '1 por cliente',
+    granularidade: 'uma por cliente',
     responde: 'Como está o cliente?',
-    mutavel: 'Regenerada a cada evento',
+    mutavel: 'Atualizada a cada novidade',
     especificos:
-      'user_goal · data_inicio · resumo · principais_problemas · solucoes_construidas · proximos_passos · linha do tempo · tabela de temperatura',
+      'objetivo dele · com quem falamos · temperatura com o histórico · problemas em aberto · o que já foi construído · próximos passos',
     corpo:
-      'Resumo 2-3 linhas no topo → Quem é → Objetivo → Temperatura (tabela delta/motivo/evidência) → Problemas top 3 → Soluções → Próximos passos → Linha do tempo',
+      'Começa com um resumo de 2-3 linhas (quem só bate o olho já sabe o essencial). Depois: quem é o cliente, o que ele quer, como anda o humor, o que tá pegando, o que já foi entregue e o que vem agora.',
   },
   {
     nome: '01-Decisões',
-    granularidade: '1 por cliente',
-    responde: 'O que foi decidido (e quando)?',
-    mutavel: 'Regenerada a cada decisão',
-    especificos: 'total_decisoes · ultima_decisao_em',
+    granularidade: 'uma por cliente',
+    responde: 'O que a gente combinou com ele?',
+    mutavel: 'Atualizada a cada decisão',
+    especificos: 'quantas decisões · quando foi a última',
     corpo:
-      'Cronológico inverso; cada decisão = data + decisão + impacto + contexto + evidência (ata/meeting_id)',
+      'Na ordem, da mais recente pra mais antiga. Cada decisão: o que foi, o que muda no projeto, por que decidiram, e em qual reunião saiu.',
   },
   {
     nome: '02-Problemas',
-    granularidade: '1 por cliente',
+    granularidade: 'uma por cliente',
     responde: 'O que ele mais reclamou?',
-    mutavel: 'Regenerada a cada problema',
-    especificos: 'abertos · resolvidos · mais_recorrente · gravidade_max',
+    mutavel: 'Atualizada a cada problema',
+    especificos: 'quantos abertos · quantos resolvidos · o mais recorrente',
     corpo:
-      'Agrupado por tema; cada problema = gravidade + status + recorrência + último trecho citado + ação em curso',
+      'Agrupado por assunto. Cada problema: o quão sério é, se tá aberto ou resolvido, quantas vezes ele reclamou disso, e a última frase que ele falou sobre.',
   },
   {
     nome: '03-Processos',
-    granularidade: '1 por cliente',
-    responde: 'Quanto o processo melhorou?',
-    mutavel: 'Regenerada a cada mapeamento',
-    especificos: 'total_processos · ganho_medio',
+    granularidade: 'uma por cliente',
+    responde: 'Quanto melhorou depois da gente?',
+    mutavel: 'Atualizada a cada mapeamento',
+    especificos: 'quantos processos · ganho médio',
     corpo:
-      'Por processo: antes (descrição + tempo) → depois (descrição + tempo) → ganho medido → fonte no Drive → status do ganho (projetado/medido)',
+      'Por processo: como era e quanto tempo levava → como ficou e quanto leva agora → qual foi o ganho → de onde saiu esse número.',
   },
   {
     nome: '04-Soluções',
-    granularidade: '1 por cliente',
-    responde: 'O que foi construído?',
-    mutavel: 'Regenerada a cada commit',
-    especificos: 'total_solucoes · tipos · stack_principal',
+    granularidade: 'uma por cliente',
+    responde: 'O que a gente já construiu pra ele?',
+    mutavel: 'Atualizada a cada entrega',
+    especificos: 'quantas soluções · de que tipo · tecnologia principal',
     corpo:
-      'Por solução: o que faz + tipo (rpa/saas/automacao/feature) + stack + repo/submódulo + fonte (commits/escopo)',
+      'Por solução: o que faz, se é sistema/automação/RPA, com que tecnologia, e em que pé está.',
   },
   {
     nome: 'Ata',
-    granularidade: '1 por reunião',
+    granularidade: 'uma por reunião',
     responde: 'O que aconteceu naquela call?',
-    mutavel: 'Imutável após gerada (v1)',
+    mutavel: 'Fica como está (histórico)',
     especificos:
-      'data · tipo_call · temperatura_entrada/saída · decisoes_na_call · problemas_na_call · meeting_id · participantes',
+      'data · tipo da call · temperatura antes e depois · decisões e problemas da call · link pra gravação',
     corpo:
-      'Resumo 3-6 linhas → Decisões → Problemas → Próximos passos (com dono) → Citações-chave → Temperatura (entrada→saída + motivo)',
+      'Resumo em poucas linhas → o que foi decidido → problemas levantados → quem fica com o quê → frases importantes ditas na call → como o humor mudou.',
   },
   {
     nome: 'MOC',
-    granularidade: '1 por filtro',
-    responde: 'Visões: por nicho, consultor, risco',
-    mutavel: 'Gerada (Dataview/SQL)',
-    especificos: 'escopo (nicho/consultor/status_projeto) · valor',
+    granularidade: 'uma por recorte',
+    responde: 'Visões do conjunto: por nicho, por consultor, quem tá em risco',
+    mutavel: 'Gerada automática',
+    especificos: 'qual o recorte (nicho, consultor, risco)',
     corpo:
-      'Lista de clientes com link para 00-Geral + temperatura + status_projeto. Padrão: MOC Nicho, MOC Consultor, MOC Clientes em Risco',
+      "Lista de clientes com link pra ficha de cada um, temperatura e fase. Ex.: 'todos os clientes de agro', 'todos do Navaar', 'quem tá em risco'.",
   },
 ]
 
 const fmComum = [
   {
     campo: 'cliente',
-    tipo: 'texto',
-    origem: 'clientes.nome',
-    uso: 'Busca por nome; título da nota',
-  },
-  {
-    campo: 'cliente_id',
-    tipo: 'uuid',
-    origem: 'clientes.id',
-    uso: 'Chave universal de correlação no Supabase',
+    tipo: 'nome',
+    origem: 'ficha do cliente',
+    uso: 'Saber de quem é a nota. É o título dela.',
   },
   {
     campo: 'aliases',
-    tipo: 'lista',
-    origem: 'Editável (banco)',
-    uso: 'Nomes coloquiais — calibra o match por título de call',
+    tipo: 'apelidos',
+    origem: 'preenchido uma vez',
+    uso: "Como o cliente é chamado no dia a dia ('Cleiton', 'a Cleiton ME') — pra reconhecer a call pelo nome solto.",
   },
-  { campo: 'tipo', tipo: 'enum', origem: 'Gerador da nota', uso: 'Filtra por tipo de nota' },
+  {
+    campo: 'tipo',
+    tipo: 'rótulo',
+    origem: 'automático',
+    uso: 'Filtrar: só decisões, só problemas, só atas...',
+  },
   {
     campo: 'produto',
-    tipo: 'enum',
-    origem: 'Portal/HubSpot',
-    uso: 'native | pass | elite — separa universos',
+    tipo: 'rótulo',
+    origem: 'do cadastro',
+    uso: 'Native, Pass ou Elite — pra não misturar universos.',
   },
   {
     campo: 'nicho',
-    tipo: 'lista controlada',
-    origem: 'IA infere + editável',
-    uso: "Pergunta-chefe: 'quais clientes agro...?'",
+    tipo: 'lista fechada',
+    origem: 'a IA sugere, você corrige',
+    uso: "A pergunta clássica: 'quais clientes de agro...?'",
   },
   {
     campo: 'segmento',
-    tipo: 'texto',
-    origem: 'IA infere + editável',
-    uso: 'Subdivisão do nicho (ex: fertilizantes especiais)',
+    tipo: 'texto livre',
+    origem: 'a IA sugere, você corrige',
+    uso: 'O sub-assunto do nicho (ex.: fertilizantes especiais).',
   },
   {
     campo: 'status',
-    tipo: 'enum',
-    origem: 'Portal/HubSpot',
-    uso: 'ativo | pausado | churn | finalizado',
+    tipo: 'rótulo',
+    origem: 'do cadastro',
+    uso: 'Ativo, pausado, saiu, terminou.',
   },
   {
-    campo: 'status_projeto',
-    tipo: 'enum',
-    origem: 'Portal (jornada)',
-    uso: 'sem_plano | discovery | construcao | integracao | finalizado',
+    campo: 'fase do projeto',
+    tipo: 'rótulo',
+    origem: 'da jornada',
+    uso: 'Ainda sem plano, em descoberta, em construção, integrando, finalizado.',
   },
   {
     campo: 'temperatura',
-    tipo: '0-100',
-    origem: 'Recálculo por evento',
-    uso: 'Número vivo; alimenta a categoria',
+    tipo: 'nota de 0 a 100',
+    origem: 'recalculada a cada evento',
+    uso: 'O número do humor. Sempre atualizado.',
   },
   {
-    campo: 'temperatura_categoria',
-    tipo: 'derivada',
-    origem: 'Gerada do número',
-    uso: 'quente≥75 | morno≥50 | frio≥25 | risco<25 — nunca escrita à mão',
+    campo: 'categoria da temperatura',
+    tipo: 'saída do número',
+    origem: 'automático',
+    uso: 'Quente, morno, frio ou risco. Ninguém escreve isso à mão — o número manda.',
   },
   {
-    campo: 'tendencia_temperatura',
-    tipo: 'derivada',
-    origem: 'Últimos deltas',
-    uso: 'subindo | estável | caindo',
+    campo: 'tendência',
+    tipo: 'saída dos últimos eventos',
+    origem: 'automático',
+    uso: 'Subindo, estável ou caindo.',
   },
   {
-    campo: 'consultor / csm',
-    tipo: 'texto',
-    origem: 'Carteira (HubSpot)',
-    uso: 'MOC por consultor; atribuição de responsabilidade',
+    campo: 'consultor e CSM',
+    tipo: 'nomes',
+    origem: 'da carteira',
+    uso: 'Saber de quem é aquele cliente.',
   },
   {
     campo: 'tags',
-    tipo: 'lista (máx 7)',
-    origem: 'IA classificadora',
-    uso: 'Temas do conteúdo — nunca nomes de cliente',
+    tipo: 'assuntos (máx 7)',
+    origem: 'a IA classifica',
+    uso: 'Do que a nota fala: escopo, prazo, API, reclamação... Nunca nome de cliente.',
   },
   {
-    campo: 'versao / atualizado_em',
-    tipo: 'int / data',
-    origem: 'Regeneração',
-    uso: 'Auditoria de atualização',
+    campo: 'versão e data de atualização',
+    tipo: 'controle',
+    origem: 'automático',
+    uso: 'Saber se a nota tá fresca.',
   },
 ]
 
 const temperaturas = [
-  { evento: 'Elogio / marco positivo / entrega em produção', delta: '+5 a +10' },
-  { evento: 'Call produtiva (decisões tomadas, próximos passos claros)', delta: '+5' },
-  { evento: 'Reclamação (problema novo)', delta: '−5 a −10' },
+  { evento: 'Elogiou, marco importante, entrega entrou em produção', delta: '+5 a +10' },
+  { evento: 'Call boa: decisões tomadas, próximos passos claros', delta: '+5' },
+  { evento: 'Reclamação nova', delta: '−5 a −10' },
   {
-    evento: 'Cliente puto no WhatsApp (sentimento negativo comprovado semanticamente)',
+    evento: 'Cliente puto no WhatsApp (comprovado no que ele escreveu, não por palavra isolada)',
     delta: '−10 a −20',
   },
-  { evento: 'Churn-risco semântico (nunca por palavra-chave isolada)', delta: '−20' },
-  { evento: 'Silêncio prolongado (>30 dias sem call/mensagem)', delta: '−10' },
-  { evento: 'Problema crítico aberto >7 dias', delta: '−5/semana' },
+  {
+    evento: 'Sinal de que quer sair (avaliado no contexto, nunca por uma palavra solta)',
+    delta: '−20',
+  },
+  { evento: 'Sumiu: mais de 30 dias sem call e sem mensagem', delta: '−10' },
+  { evento: 'Problema sério parado há mais de 7 dias', delta: '−5 por semana' },
 ]
 
 const fases = [
   {
     fase: 'F0',
-    nome: 'Banco',
-    oque: 'Criar projeto Supabase novo + rodar schema',
-    aceite: '10 tabelas + 3 RPCs + pgvector ativos; anon 403',
+    nome: 'Criar o banco',
+    oque: 'Criar o Supabase novo e rodar a estrutura',
+    aceite: 'Tabelas prontas, busca funcionando, ninguém de fora entra',
   },
   {
     fase: 'F1',
-    nome: 'Calls (piloto)',
-    oque: 'WF-A: tl;dv → IA chunk/ata/decisões/problemas + temperatura',
-    aceite: '1 cliente piloto com histórico completo ingerido e notas geradas',
+    nome: 'Piloto com um cliente',
+    oque: 'Fluxo de calls completo: baixa o tl;dv, a IA organiza tudo, gera as notas',
+    aceite: 'Um cliente com o histórico inteiro dentro e as notas dele prontas pra ler',
   },
   {
     fase: 'F2',
-    nome: 'Portal + backfill',
-    oque: 'WF-E: conta → match_retroativo; backfill de TODOS os Native',
-    aceite: '100% dos Native com nota 00-Geral; calls órfãs atribuídas',
+    nome: 'Todos os clientes Native',
+    oque: 'Conectar o portal e puxar o histórico de todos',
+    aceite: 'Todo cliente Native com a ficha dele; nada de call perdida',
   },
   {
     fase: 'F3',
     nome: 'WhatsApp',
-    oque: 'WF-B: eventos relevantes do SLA → chunk/problema/temperatura',
-    aceite: 'Eventos virando temperatura com motivo em tempo quase real',
+    oque: 'O que o cliente fala no grupo entra no cérebro na hora',
+    aceite: 'Reclamação no grupo aparece como problema e mexe na temperatura no mesmo dia',
   },
   {
     fase: 'F4',
-    nome: 'Drive + GitHub',
-    oque: 'WF-C: docs → processos; WF-D: commits → soluções',
-    aceite: 'Processos e soluções populados para o piloto',
+    nome: 'Drive e GitHub',
+    oque: 'Mapeamentos viram nota de processos; código vira nota de soluções',
+    aceite: 'Processos e soluções preenchidos no piloto',
   },
   {
     fase: 'F5',
     nome: 'Busca',
-    oque: 'RPC match_notas + MOCs/Dataview (Obsidian via API)',
-    aceite: 'Perguntas dos chefes respondidas em <30s no piloto',
+    oque: 'Perguntar em português e achar a resposta',
+    aceite: 'As perguntas da liderança respondidas em menos de 30 segundos',
   },
 ]
 
 const perguntas = [
   {
-    p: 'Quais clientes agro estão em risco?',
-    resolve: 'frontmatter: nicho=agro + temperatura_categoria=risco (qualquer nota)',
+    p: 'Quais clientes de agro tão em risco?',
+    resolve: 'Etiqueta de nicho + categoria de temperatura — em qualquer nota',
   },
-  { p: 'Como está o Cleiton?', resolve: 'nota 00-Geral: resumo + temperatura + próximos passos' },
-  { p: 'Por que esfriou?', resolve: 'temperatura_historico: delta + motivo + evidência' },
+  { p: 'Como tá o Cleiton?', resolve: 'Ficha geral dele: resumo, temperatura e próximos passos' },
+  { p: 'Por que ele esfriou?', resolve: 'Histórico de temperatura: o motivo e a frase que causou' },
   {
-    p: 'O que foi decidido com ele?',
-    resolve: 'nota 01-Decisões (cronológica, com ata de origem)',
+    p: 'O que a gente combinou com ele?',
+    resolve: 'Nota de decisões, na ordem, com a reunião de origem',
   },
-  { p: 'O que ele mais reclamou?', resolve: 'nota 02-Problemas: mais_recorrente + recorrência' },
+  {
+    p: 'Do que ele mais reclamou?',
+    resolve: 'Nota de problemas: o assunto mais recorrente, com número de vezes',
+  },
   {
     p: 'Quanto o processo melhorou?',
-    resolve: 'nota 03-Processos: tempo_antes vs tempo_depois + ganho',
+    resolve: 'Nota de processos: tempo de antes vs tempo de agora',
   },
-  { p: 'O que já foi construído?', resolve: 'nota 04-Soluções: tipos + stack + repo' },
-  { p: 'O que aconteceu na call de 15/09?', resolve: 'Ata: data=2026-09-15 + meeting_id (tl;dv)' },
-  { p: 'Quais clientes do Navaar estão parados?', resolve: 'MOC por consultor + status_projeto' },
   {
-    p: "Busca livre: 'clientes com problema de API'",
-    resolve: 'match_notas (embedding) filtrando tags',
+    p: 'O que já foi construído?',
+    resolve: 'Nota de soluções: o que é, com que tecnologia, em que pé está',
+  },
+  { p: 'O que aconteceu na call de 15/09?', resolve: 'A ata do dia, com link pra gravação' },
+  {
+    p: 'Quais clientes do Navaar tão parados?',
+    resolve: 'Recorte por consultor + fase do projeto',
+  },
+  {
+    p: "'Clientes com problema de API'",
+    resolve: 'Busca por significado — acha mesmo sem saber onde está escrito',
   },
 ]
 
@@ -464,13 +483,13 @@ export default function App() {
   const [tab, setTab] = useState('visao')
   const tabs = [
     { id: 'visao', label: 'Visão Geral' },
-    { id: 'fontes', label: 'Fontes & Ingestão' },
-    { id: 'banco', label: 'Banco de Dados' },
-    { id: 'correlacoes', label: 'Correlações' },
-    { id: 'notas', label: 'Notas & Templates' },
-    { id: 'frontmatter', label: 'Frontmatter' },
+    { id: 'fontes', label: 'De onde vem' },
+    { id: 'banco', label: 'Como guarda' },
+    { id: 'correlacoes', label: 'Como se liga' },
+    { id: 'notas', label: 'As notas' },
+    { id: 'frontmatter', label: 'Etiquetas' },
     { id: 'temperatura', label: 'Temperatura' },
-    { id: 'execucao', label: 'Execução' },
+    { id: 'execucao', label: 'Por onde começa' },
   ]
 
   return (
@@ -484,24 +503,24 @@ export default function App() {
                 Segundo Cérebro <span className="text-cyan-400">(Elite)</span>
               </h1>
               <p className="text-sm text-slate-400">
-                Arquitetura completa · fontes → ingestão → banco → notas · v1.0 · 17/09/2026
+                A memória completa de cada cliente · v1.0 · 17/09/2026
               </p>
             </div>
             <div className="flex gap-2 text-xs">
               <span className="rounded-full border border-cyan-400/40 bg-cyan-400/10 px-3 py-1 text-cyan-300">
-                Supabase novo + pgvector 1536d
+                Um banco novo, só disso
               </span>
               <span className="rounded-full border border-violet-400/40 bg-violet-400/10 px-3 py-1 text-violet-300">
-                Obsidian via API
+                Notas no Obsidian
               </span>
               <span className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1 text-emerald-300">
-                5 workflows n8n
+                5 fluxos automáticos
               </span>
             </div>
           </div>
           {/* PIPELINE RESUMO */}
           <div className="mt-5 flex flex-wrap items-center gap-2 text-xs">
-            {['tl;dv', 'Portal', 'WhatsApp', 'Drive', 'GitHub'].map((f) => (
+            {['Conversas (tl;dv)', 'Portal', 'WhatsApp', 'Drive', 'GitHub'].map((f) => (
               <span
                 key={f}
                 className="rounded-md border border-slate-700 bg-slate-800/60 px-2.5 py-1.5 text-slate-300"
@@ -511,19 +530,19 @@ export default function App() {
             ))}
             <span className="text-cyan-400">→</span>
             <span className="rounded-md border border-cyan-500/50 bg-cyan-500/10 px-2.5 py-1.5 text-cyan-300">
-              n8n · IA leve (assuntos/chunks/atas)
+              A IA organiza em pedaços com assunto
             </span>
             <span className="text-cyan-400">→</span>
             <span className="rounded-md border border-violet-500/50 bg-violet-500/10 px-2.5 py-1.5 text-violet-300">
-              Supabase · 10 tabelas · vetorizado
+              Guarda tudo no banco, com busca por significado
             </span>
             <span className="text-cyan-400">→</span>
             <span className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-2.5 py-1.5 text-emerald-300">
-              Notas atômicas + frontmatter
+              Vira nota por cliente
             </span>
             <span className="text-cyan-400">→</span>
             <span className="rounded-md border border-amber-500/50 bg-amber-500/10 px-2.5 py-1.5 text-amber-300">
-              Equipe · Chefes · Agentes IA
+              O time consulta antes da call · a liderança busca o que quiser
             </span>
           </div>
         </div>
@@ -554,45 +573,46 @@ export default function App() {
           <div className="space-y-8">
             <section>
               <h2 className="mb-1 text-lg font-semibold text-white">
-                A jornada do dado — de ponta a ponta
+                A história de um cliente, de ponta a ponta
               </h2>
               <p className="mb-4 text-sm text-slate-400">
-                O Cleiton entra por uma call de vendas no tl;dv antes mesmo de existir como cliente.
-                A call é vetorizada como órfã; quando ele paga e a conta é criada no Portal, o match
-                retroativo por email traz TUDO de volta para ele.
+                O Cleiton aparece na nossa vida numa call de vendas — antes mesmo de existir como
+                cliente. Essa conversa já fica guardada. Quando ele paga, tudo que estava guardado
+                no nome dele se junta numa pasta só. Daí pra frente, tudo que acontece com ele
+                alimenta a memória.
               </p>
               <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-5">
                 <div className="space-y-3 text-sm">
                   {[
                     {
                       n: '1',
-                      t: 'Call de vendas (tl;dv)',
-                      d: 'WF-A ingesta e vetoriza. Cliente ainda não tem conta → call fica ÓRFÃ (cliente_id null), já pesquisável por embedding.',
+                      t: 'A primeira conversa',
+                      d: 'Call de vendas gravada no tl;dv. Ele ainda nem pagou, mas a conversa já fica guardada — e já dá pra pesquisar dentro dela.',
                     },
                     {
                       n: '2',
-                      t: 'Pagou → conta no Portal',
-                      d: 'WF-E cria o cliente no banco novo e dispara match_retroativo(email): todas as calls órfãs daquele email são reatribuídas — inclusive a de vendas.',
+                      t: 'Ele pagou',
+                      d: 'Conta criada no portal. Na mesma hora, o sistema busca tudo que estava guardado no email dele e junta: a call de vendas volta pra ele.',
                     },
                     {
                       n: '3',
-                      t: 'IA leve processa',
-                      d: '4o-mini/DeepSeek define assuntos, divide em chunks, gera a ata, extrai decisões e problemas, recalcula a temperatura com motivo.',
+                      t: 'A IA organiza',
+                      d: 'Lê a conversa, separa por assunto, escreve a ata, anota as decisões e os problemas, e atualiza o humor dele — sempre com a frase que justifica.',
                     },
                     {
                       n: '4',
-                      t: 'Notas são geradas/regeneradas',
-                      d: '00-Geral, 01-Decisões, 02-Problemas + a Ata da reunião. Frontmatter montado do banco (nicho, temperatura, consultor).',
+                      t: 'As notas nascem',
+                      d: 'A ficha geral, as decisões, os problemas, a ata da reunião. Tudo com as etiquetas de busca no topo.',
                     },
                     {
                       n: '5',
-                      t: 'Eventos contínuos atualizam',
-                      d: 'WhatsApp (reclamação derruba temperatura com motivo) · Drive (processo antes→depois) · GitHub (solução construída) · nova call (nova ata + decisões).',
+                      t: 'E a vida continua alimentando',
+                      d: 'Reclamação no WhatsApp esfria o humor dele na hora. Mapeamento no Drive vira nota de processos. Código no GitHub vira nota de soluções. Call nova, ata nova.',
                     },
                     {
                       n: '6',
-                      t: 'Consumo',
-                      d: 'Equipe lê antes da call · chefes buscam por nicho/temperatura/pergunta livre (match_notas) · agentes de IA usam como contexto.',
+                      t: 'Todo mundo consulta',
+                      d: "O time abre a ficha antes da call. A liderança pergunta o que quiser ('quem tá em risco?') e a resposta sai em segundos. Os agentes de IA usam como contexto.",
                     },
                   ].map((s) => (
                     <div key={s.n} className="flex gap-3">
@@ -611,14 +631,14 @@ export default function App() {
 
             <section>
               <h2 className="mb-3 text-lg font-semibold text-white">
-                Perguntas dos chefes → onde o sistema responde
+                O que a liderança vai perguntar — e onde está a resposta
               </h2>
               <div className="overflow-hidden rounded-xl border border-slate-800">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-800/60 text-left text-slate-400">
                     <tr>
                       <th className="px-4 py-2.5 font-medium">Pergunta</th>
-                      <th className="px-4 py-2.5 font-medium">Resolve com</th>
+                      <th className="px-4 py-2.5 font-medium">A resposta está em</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -636,16 +656,16 @@ export default function App() {
             <section className="grid gap-4 md:grid-cols-3">
               {[
                 {
-                  t: 'Idempotente',
-                  d: 'fontes_ingestao com UNIQUE(tipo_fonte, id_externo) — nenhuma call/mensagem/commit é processada 2x. Payload bruto preservado para reprocessar.',
+                  t: 'Nada entra duas vezes',
+                  d: 'Se a mesma call, mensagem ou documento aparecer de novo, o banco percebe e ignora. E o original fica guardado — se a IA errar, refaz sem perder nada.',
                 },
                 {
-                  t: 'Rastreável',
-                  d: 'Toda decisão, problema, processo e solução sabe de qual evento veio (fonte_id → url_origem/meeting_id/commit). Sem evidência citada, não entra na nota.',
+                  t: 'Tudo tem rastro',
+                  d: 'Cada decisão, problema, processo e solução sabe de qual conversa ou documento saiu. Sempre dá pra voltar na origem e conferir.',
                 },
                 {
-                  t: 'Auditável',
-                  d: 'Temperatura nunca muda sem motivo: cada delta tem evidência e evento de origem. Notas são regeneradas do banco; versão incrementa a cada regeneração.',
+                  t: 'Nada muda sem motivo',
+                  d: 'O humor do cliente nunca esfria ou esquenta do nada: cada mudança vem com a frase que causou. E as notas são sempre refeitas do banco — se um dado muda, a nota muda junto.',
                 },
               ].map((c) => (
                 <div key={c.t} className="rounded-xl border border-slate-800 bg-[#0d1219] p-4">
@@ -660,12 +680,10 @@ export default function App() {
         {/* ============ FONTES ============ */}
         {tab === 'fontes' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">
-              As 5 fontes → de onde cada dado é puxado
-            </h2>
+            <h2 className="text-lg font-semibold text-white">De onde vem cada informação</h2>
             <p className="text-sm text-slate-400">
-              Cada fonte tem seu workflow n8n, sua chave de idempotência e seu campo de correlação
-              com o cliente.
+              Cinco lugares. Cada um tem seu fluxo automático e sua forma de saber de quem é a
+              informação.
             </p>
             {fontes.map((f) => (
               <div key={f.nome} className={`rounded-xl border p-5 ${corBorda[f.cor]}`}>
@@ -678,24 +696,24 @@ export default function App() {
                 </div>
                 <div className="grid gap-3 text-sm md:grid-cols-2">
                   <div>
-                    <span className="font-medium text-slate-300">Entrega:</span>{' '}
+                    <span className="font-medium text-slate-300">O que entrega:</span>{' '}
                     <span className="text-slate-400">{f.entrega}</span>
                   </div>
                   <div>
-                    <span className="font-medium text-slate-300">Gatilho:</span>{' '}
+                    <span className="font-medium text-slate-300">Quando dispara:</span>{' '}
                     <span className="text-slate-400">{f.gatilho}</span>
                   </div>
                   <div>
-                    <span className="font-medium text-slate-300">Idempotência:</span>{' '}
-                    <span className="font-mono text-xs text-cyan-300/80">{f.idempotencia}</span>
+                    <span className="font-medium text-slate-300">Sem duplicar:</span>{' '}
+                    <span className="text-slate-400">{f.idempotencia}</span>
                   </div>
                   <div>
-                    <span className="font-medium text-slate-300">Correlação:</span>{' '}
+                    <span className="font-medium text-slate-300">Como sabe de quem é:</span>{' '}
                     <span className="text-slate-400">{f.correlacao}</span>
                   </div>
                   <div className="md:col-span-2">
-                    <span className="font-medium text-slate-300">Escreve em:</span>{' '}
-                    <span className="font-mono text-xs text-violet-300/80">{f.destino}</span>
+                    <span className="font-medium text-slate-300">Vira:</span>{' '}
+                    <span className="text-violet-300/90">{f.destino}</span>
                   </div>
                 </div>
               </div>
@@ -706,29 +724,23 @@ export default function App() {
         {/* ============ BANCO ============ */}
         {tab === 'banco' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">
-              Banco novo (Supabase + pgvector) — 10 tabelas
-            </h2>
+            <h2 className="text-lg font-semibold text-white">Como tudo é guardado</h2>
             <p className="text-sm text-slate-400">
-              <span className="font-mono text-cyan-300">clientes.id</span> é a chave universal:
-              todas as outras tabelas se ligam por{' '}
-              <span className="font-mono text-cyan-300">cliente_id</span>.{' '}
-              <span className="font-mono text-cyan-300">fontes_ingestao.id</span> é a
-              rastreabilidade: tudo que é derivado sabe de qual evento bruto veio. RLS deny-all para
-              anon; só service_role (n8n) escreve.
+              Um banco novo, só disso. A ficha do cliente é o centro: tudo se liga nela. E tudo que
+              chega passa primeiro pela caixa de entrada, que guarda o original — dá sempre pra
+              refazer.
             </p>
             {tabelas.map((t) => (
               <div key={t.nome} className="rounded-xl border border-slate-800 bg-[#0d1219] p-5">
                 <div className="mb-2 flex flex-wrap items-baseline gap-3">
-                  <h3 className="font-mono text-base font-semibold text-violet-300">{t.nome}</h3>
+                  <h3 className="text-base font-semibold text-violet-300">{t.nome}</h3>
                   <span className="text-sm text-slate-400">{t.papel}</span>
                 </div>
                 <p className="mb-2 text-sm text-slate-400">
-                  <span className="font-medium text-slate-300">Campos:</span>{' '}
-                  <span className="font-mono text-xs text-slate-400">{t.campos}</span>
+                  <span className="font-medium text-slate-300">O que tem dentro:</span> {t.campos}
                 </p>
                 <p className="text-sm text-cyan-300/80">
-                  <span className="font-medium text-slate-300">Relações:</span> {t.refs}
+                  <span className="font-medium text-slate-300">Como se liga:</span> {t.refs}
                 </p>
               </div>
             ))}
@@ -738,11 +750,9 @@ export default function App() {
         {/* ============ CORRELAÇÕES ============ */}
         {tab === 'correlacoes' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">
-              Todas as correlações — quem liga a quem, e como
-            </h2>
+            <h2 className="text-lg font-semibold text-white">Como cada coisa se liga na outra</h2>
             <p className="text-sm text-slate-400">
-              A tabela abaixo é o mapa completo de onde cada dado é puxado e como se une no banco.
+              O mapa completo: quem puxa o quê, de onde, e como junta tudo na ficha do cliente.
             </p>
             <div className="overflow-hidden rounded-xl border border-slate-800">
               <table className="w-full text-sm">
@@ -750,15 +760,15 @@ export default function App() {
                   <tr>
                     <th className="px-4 py-2.5 font-medium">De</th>
                     <th className="px-4 py-2.5 font-medium">Para</th>
-                    <th className="px-4 py-2.5 font-medium">Tipo</th>
+                    <th className="px-4 py-2.5 font-medium">O que é</th>
                     <th className="px-4 py-2.5 font-medium">Como funciona</th>
                   </tr>
                 </thead>
                 <tbody>
                   {correlacoes.map((c, i) => (
                     <tr key={i} className="border-t border-slate-800/70 align-top">
-                      <td className="px-4 py-2.5 font-mono text-xs text-cyan-300/90">{c.de}</td>
-                      <td className="px-4 py-2.5 font-mono text-xs text-violet-300/90">{c.para}</td>
+                      <td className="px-4 py-2.5 text-cyan-300/90">{c.de}</td>
+                      <td className="px-4 py-2.5 text-violet-300/90">{c.para}</td>
                       <td className="px-4 py-2.5 text-slate-300">{c.tipo}</td>
                       <td className="px-4 py-2.5 text-slate-400">{c.como}</td>
                     </tr>
@@ -767,10 +777,10 @@ export default function App() {
               </table>
             </div>
             <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4 text-sm text-slate-300">
-              <strong className="text-cyan-300">O fluxo-coração:</strong> call de vendas órfã →
-              conta no Portal → <span className="font-mono text-xs">match_retroativo(email)</span> →
-              todas as fontes órfãs daquele email (e seus chunks/atas) voltam para o cliente → notas
-              geradas com o histórico INTEIRO, desde antes de ele pagar.
+              <strong className="text-cyan-300">O pulo do gato:</strong> a call de vendas fica
+              guardada mesmo antes do cliente existir. Quando ele paga e a conta é criada, o sistema
+              busca tudo que estava no email dele e junta na pasta dele — a memória começa na
+              PRIMEIRA conversa, não na primeira consultoria.
             </div>
           </div>
         )}
@@ -779,12 +789,12 @@ export default function App() {
         {tab === 'notas' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">
-              Os 7 tipos de nota — atômicas, com frontmatter comum herdado
+              As notas — uma memória que dá gosto de ler
             </h2>
             <p className="text-sm text-slate-400">
-              Toda nota carrega o bloco comum do cliente (nicho, temperatura, consultor...) — a
-              pergunta dos chefes filtra em QUALQUER nota. Notas são regeneradas do banco; o humano
-              edita campos no banco (nicho, segmento) e a nota herda.
+              Cada nota é pequena e de um assunto só. Todas carregam as mesmas etiquetas no topo
+              (nicho, temperatura, consultor) — dá pra filtrar em qualquer uma. E ninguém escreve
+              nota à mão: elas são sempre refeitas do banco, então nunca ficam velhas.
             </p>
             {tiposNota.map((n) => (
               <div key={n.nome} className="rounded-xl border border-slate-800 bg-[#0d1219] p-5">
@@ -801,17 +811,17 @@ export default function App() {
                   <span className="font-medium text-white">Responde:</span> {n.responde}
                 </p>
                 <p className="mb-2 text-sm text-slate-400">
-                  <span className="font-medium text-slate-300">Frontmatter específico:</span>{' '}
-                  <span className="font-mono text-xs text-cyan-300/80">{n.especificos}</span>
+                  <span className="font-medium text-slate-300">O que mais aparece no topo:</span>{' '}
+                  {n.especificos}
                 </p>
                 <p className="text-sm text-slate-400">
-                  <span className="font-medium text-slate-300">Corpo:</span> {n.corpo}
+                  <span className="font-medium text-slate-300">Como é por dentro:</span> {n.corpo}
                 </p>
               </div>
             ))}
             <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-5">
               <h3 className="mb-2 text-base font-semibold text-white">
-                Estrutura de pastas (quando o Obsidian entrar)
+                Como fica a pasta de cada cliente (quando o Obsidian entrar)
               </h3>
               <pre className="overflow-x-auto rounded-lg bg-black/40 p-4 text-xs text-slate-300">{`Segundo Cérebro/
 ├── Clientes/
@@ -823,14 +833,12 @@ export default function App() {
 │       ├── 04-Soluções — Cleiton Fertilizantes.md
 │       └── Atas/
 │           └── 2026-09-15 — 1ª Consultoria.md
-└── MOCs/
-    ├── MOC — Nicho Agro.md
-    ├── MOC — Consultor Navaar.md
-    └── MOC — Clientes em Risco.md`}</pre>
+└── Recortes/
+    ├── Clientes de Agro.md
+    ├── Clientes do Navaar.md
+    └── Quem tá em Risco.md`}</pre>
               <p className="mt-2 text-sm text-slate-400">
-                Até lá, as notas vivem só no Supabase (
-                <span className="font-mono text-xs">notas.conteudo_md + frontmatter</span>) e toda
-                busca é SQL/RPC.
+                Até lá, as notas já vivem prontas no banco — dá pra ler e buscar tudo por lá.
               </p>
             </div>
           </div>
@@ -839,25 +847,28 @@ export default function App() {
         {/* ============ FRONTMATTER ============ */}
         {tab === 'frontmatter' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">Frontmatter — o contrato de busca</h2>
+            <h2 className="text-lg font-semibold text-white">
+              As etiquetas do topo — o que permite achar depois
+            </h2>
             <p className="text-sm text-slate-400">
-              Todo campo existe porque uma pergunta real depende dele. Flat (só escalares e listas)
-              para Dataview/SQL lerem fácil.
+              Toda nota começa com um bloco de etiquetas. Cada uma existe por um motivo: tem uma
+              pergunta que só ela responde. Quase tudo é automático — ninguém fica preenchendo isso
+              à mão.
             </p>
             <div className="overflow-hidden rounded-xl border border-slate-800">
               <table className="w-full text-sm">
                 <thead className="bg-slate-800/60 text-left text-slate-400">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">Campo</th>
-                    <th className="px-4 py-2.5 font-medium">Tipo</th>
-                    <th className="px-4 py-2.5 font-medium">Origem</th>
-                    <th className="px-4 py-2.5 font-medium">Para que serve</th>
+                    <th className="px-4 py-2.5 font-medium">Etiqueta</th>
+                    <th className="px-4 py-2.5 font-medium">O que é</th>
+                    <th className="px-4 py-2.5 font-medium">Quem preenche</th>
+                    <th className="px-4 py-2.5 font-medium">Pra que serve</th>
                   </tr>
                 </thead>
                 <tbody>
                   {fmComum.map((f) => (
                     <tr key={f.campo} className="border-t border-slate-800/70">
-                      <td className="px-4 py-2.5 font-mono text-xs text-cyan-300/90">{f.campo}</td>
+                      <td className="px-4 py-2.5 text-cyan-300/90">{f.campo}</td>
                       <td className="px-4 py-2.5 text-slate-400">{f.tipo}</td>
                       <td className="px-4 py-2.5 text-slate-400">{f.origem}</td>
                       <td className="px-4 py-2.5 text-slate-300">{f.uso}</td>
@@ -868,25 +879,20 @@ export default function App() {
             </div>
             <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-5">
               <h3 className="mb-2 text-base font-semibold text-white">
-                Exemplo real — bloco comum (toda nota carrega)
+                Como fica o topo de uma nota
               </h3>
               <pre className="overflow-x-auto rounded-lg bg-black/40 p-4 text-xs text-slate-300">{`cliente: "Cleiton Fertilizantes"
-cliente_id: "a1b2c3d4"
-aliases: ["Cleiton", "Cleiton ME"]
+apelidos: ["Cleiton", "Cleiton ME"]
 tipo: geral
 produto: native
 nicho: agro
 segmento: "fertilizantes especiais"
 status: ativo
-status_projeto: construcao
-temperatura: 72
-temperatura_categoria: quente
-tendencia_temperatura: subindo
-consultor: "Felipe Navaar"
-csm: "Izabel"
-tags: [escopo, api, prazo]
-versao: 14
-atualizado_em: 2026-09-17`}</pre>
+fase do projeto: em construção
+temperatura: 72 (quente, subindo)
+consultor: "Felipe Navaar" · CSM: "Izabel"
+tags: escopo, API, prazo
+atualizada em: 17/09/2026`}</pre>
             </div>
           </div>
         )}
@@ -895,18 +901,19 @@ atualizado_em: 2026-09-17`}</pre>
         {tab === 'temperatura' && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-white">
-              Temperatura — dinâmica, com motivo e evidência
+              A temperatura — o humor do cliente, em número
             </h2>
             <p className="text-sm text-slate-400">
-              Base 50 no cadastro · range 0–100 · recalculada a cada ata e a cada evento relevante
-              de WhatsApp. A categoria é derivada do número, nunca escrita à mão.
+              Começa em 50 quando o cliente entra. Sobe e desce com o que acontece: cada reunião,
+              cada mensagem no WhatsApp. E o mais importante: nenhuma mudança acontece sem que fique
+              escrito o porquê.
             </p>
             <div className="overflow-hidden rounded-xl border border-slate-800">
               <table className="w-full text-sm">
                 <thead className="bg-slate-800/60 text-left text-slate-400">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">Evento</th>
-                    <th className="px-4 py-2.5 font-medium">Delta</th>
+                    <th className="px-4 py-2.5 font-medium">O que aconteceu</th>
+                    <th className="px-4 py-2.5 font-medium">Mexe quanto</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -925,15 +932,16 @@ atualizado_em: 2026-09-17`}</pre>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-4 text-sm text-slate-300">
-                <strong className="text-rose-300">Regra de segurança:</strong> mudança de
-                temperatura exige evidência citada (trecho da call/mensagem). IA nunca eleva/baixa
-                por termo isolado — mesma régua semântica do WhatsApp SLA.
+                <strong className="text-rose-300">A regra que não quebra:</strong> a IA não pode
+                esfriar um cliente por causa de uma palavra solta. "Se porventura a gente desistir"
+                é hipótese, não ameaça. Ela olha a frase inteira, o contexto e a intenção — e sempre
+                cita a frase que justificou a mudança.
               </div>
               <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-4 text-sm text-slate-300">
-                <strong className="text-cyan-300">Categorias:</strong> quente ≥75 · morno ≥50 · frio
-                ≥25 · risco &lt;25. Toda mudança vira linha em{' '}
-                <span className="font-mono text-xs">temperatura_historico</span> com delta, motivo e
-                evento de origem — é o que responde "por que esfriou?".
+                <strong className="text-cyan-300">As faixas:</strong> quente (75 pra cima) · morno
+                (50 a 74) · frio (25 a 49) · risco (abaixo de 25). A faixa sai do número, ninguém
+                escolhe à mão. E cada mudança fica registrada com o motivo — é o que responde "por
+                que ele esfriou?".
               </div>
             </div>
           </div>
@@ -942,9 +950,10 @@ atualizado_em: 2026-09-17`}</pre>
         {/* ============ EXECUÇÃO ============ */}
         {tab === 'execucao' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-white">
-              Fases de execução — nada roda antes do escopo aprovado
-            </h2>
+            <h2 className="text-lg font-semibold text-white">Por onde a gente começa</h2>
+            <p className="text-sm text-slate-400">
+              Nada roda antes do escopo estar fechado. A ordem é essa:
+            </p>
             <div className="space-y-3">
               {fases.map((f) => (
                 <div
@@ -958,38 +967,29 @@ atualizado_em: 2026-09-17`}</pre>
                     <h3 className="font-semibold text-white">{f.nome}</h3>
                     <p className="text-sm text-slate-400">{f.oque}</p>
                     <p className="mt-1 text-sm text-emerald-300/90">
-                      <span className="font-medium">Aceite:</span> {f.aciete}
+                      <span className="font-medium">Pronto quando:</span> {f.aciete}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-slate-300">
-              <strong className="text-amber-300">Fora do escopo (v1):</strong> sync bidirecional
-              Obsidian→banco · notas de prospects que não pagaram (calls ficam vetorizadas, mas sem
-              notas) · dashboard web · clientes Pass/Elite (o campo produto já suporta quando
-              expandir).
+              <strong className="text-amber-300">O que NÃO entra agora (v1):</strong> editar nota
+              direto no Obsidian (ele só lê) · ficha de quem nunca pagou (as conversas ficam
+              guardadas, mas sem ficha) · dashboard web · clientes Pass e Elite (o sistema já
+              suporta quando quiser expandir).
             </div>
             <div className="rounded-xl border border-slate-800 bg-[#0d1219] p-4 text-sm text-slate-400">
-              <strong className="text-slate-200">Artefatos-fonte:</strong>{' '}
-              <span className="font-mono text-xs">artifacts/escopo-segundo-cerebro.md</span> (escopo
-              11 seções) ·{' '}
-              <span className="font-mono text-xs">artifacts/segundo-cerebro-schema.sql</span> (banco
-              completo) ·{' '}
-              <span className="font-mono text-xs">
-                artifacts/notas-templates-segundo-cerebro.md
-              </span>{' '}
-              (7 templates) ·{' '}
-              <span className="font-mono text-xs">artifacts/segundo-cerebro-pipeline.md</span>{' '}
-              (workflows).
+              <strong className="text-slate-200">Documentos completos por trás disso:</strong>{' '}
+              escopo (11 seções) · estrutura do banco · os 7 modelos de nota · o desenho dos 5
+              fluxos. Tudo em artifacts/ no meu workspace.
             </div>
           </div>
         )}
       </main>
 
       <footer className="border-t border-slate-800 px-6 py-4 text-center text-xs text-slate-500">
-        Segundo Cérebro (Elite) · Adapta · escopo v1.0 — 17/09/2026 · aguardando validação do
-        Rodrigo
+        Segundo Cérebro (Elite) · Adapta · v1.0 — 17/09/2026 · aguardando o ok do Rodrigo
       </footer>
     </div>
   )
